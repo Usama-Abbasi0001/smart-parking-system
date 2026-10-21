@@ -139,17 +139,6 @@ const Sidebar = ({ isOpen, onClose }) => {
             </div>
           )}
         </div>
-
-        {/* Bottom FYP Simulation Badge */}
-        <div className="p-3.5 border-t border-slate-100 bg-slate-50/80 m-3 rounded-2xl">
-          <div className="flex items-start gap-2.5">
-            <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="text-[11px] text-slate-500 leading-snug">
-              <span className="font-bold text-slate-800 block">FYP Software Mode</span>
-              Availability & demo payments simulated via database records.
-            </div>
-          </div>
-        </div>
       </aside>
     </>
   );

@@ -1,7 +1,7 @@
 {
   "name": "ParkPulse - Smart Parking System",
   "short_name": "ParkPulse",
-  "description": "Smart Parking Reservation and Management Application - Final Year Project",
+  "description": "Smart Parking Reservation and Management Application",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

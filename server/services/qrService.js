@@ -9,7 +9,7 @@ export const generateBookingQRCode = async (bookingReference) => {
   try {
     const payload = JSON.stringify({
       ref: bookingReference,
-      system: 'ParkPulse-FYP',
+      system: 'ParkPulse',
       verifyUrl: `/api/bookings/verify/${encodeURIComponent(bookingReference)}`,
     });
 

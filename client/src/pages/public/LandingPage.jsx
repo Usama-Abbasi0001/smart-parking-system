@@ -30,7 +30,7 @@ const LandingPage = () => {
                 Park<span className="text-blue-600">Pulse</span>
               </span>
               <span className="hidden sm:inline-block ml-2 text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                FYP Edition
+                Smart Parking System
               </span>
             </div>
           </div>

@@ -129,7 +129,7 @@ const Navbar = ({ onToggleSidebar, isSidebarOpen }) => {
                   )}
                 </div>
                 <span className="text-[9px] font-semibold text-slate-400 tracking-widest uppercase">
-                  Smart FYP System
+                  Smart Parking System
                 </span>
               </div>
             </Link>

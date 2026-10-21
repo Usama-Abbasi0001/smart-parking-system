@@ -1,11 +1,11 @@
 # ParkPulse — Smart Parking Management System
-### Final Year Project (FYP) — Software-Only Full-Stack Web Application
+### Enterprise-Grade Software-Only Full-Stack Web Application
 
 ---
 
 ## 1. Abstract & Project Overview
 
-**ParkPulse** is a responsive full-stack Smart Parking Management System designed and developed as a university Final Year Project (FYP). The application replaces traditional, physical paper ticketing and congested parking search routines with an intelligent, database-backed reservation and scheduling engine.
+**ParkPulse** is a responsive full-stack Smart Parking Management System. The application replaces traditional, physical paper ticketing and congested parking search routines with an intelligent, database-backed reservation and scheduling engine.
 
 Drivers can discover vacant parking spaces across multiple commercial decks, select precise reservation windows, obtain dynamic price estimates, simulate instant payments, and generate digital QR check-in passes. System administrators receive a high-level command console featuring real-time occupancy metrics, automated double-booking prevention, Recharts analytics, user directory control, slot maintenance toggles, and live CSV export capabilities.
 
@@ -321,5 +321,5 @@ npm --prefix client run build
 ---
 
 ## 13. License & Authorship
-Developed for Final Year Project (FYP) demonstration.  
+Developed as a Full-Stack Smart Parking Management System.  
 All rights reserved © 2026.

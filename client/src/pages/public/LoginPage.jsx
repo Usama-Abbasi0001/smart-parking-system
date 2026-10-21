@@ -111,7 +111,7 @@ const LoginPage = () => {
           {/* Quick Demo Credentials Fill Buttons */}
           <div className="mt-6 pt-6 border-t border-slate-100">
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest text-center mb-3">
-              ⚡ 1-Click FYP Examiner Demo Login
+              ⚡ 1-Click Quick Demo Login
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button

@@ -126,7 +126,7 @@ const BookingCheckoutPage = () => {
         <ShieldCheck className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
         <div className="text-xs text-amber-800 leading-relaxed">
           <span className="font-bold block text-amber-900 mb-0.5">
-            FYP Demo Simulation Module
+            Smart Payment Simulation Module
           </span>
           No real financial transaction or sensitive card data is collected. Use the
           simulation buttons below to test both successful payment confirmation and test
