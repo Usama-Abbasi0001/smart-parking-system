@@ -27,12 +27,16 @@ const FindParkingPage = () => {
 
   // Date and Time filter states (Default: today, next full hour to +2 hours)
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const localTodayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-  const defaultStartHour = String((now.getHours() + 1) % 24).padStart(2, '0') + ':00';
-  const defaultEndHour = String((now.getHours() + 3) % 24).padStart(2, '0') + ':00';
+  const currentHour = now.getHours();
+  const nextHour = (currentHour + 1) % 24;
+  const plusTwoHour = (nextHour + 2) % 24;
 
-  const [date, setDate] = useState(todayStr);
+  const defaultStartHour = String(nextHour).padStart(2, '0') + ':00';
+  const defaultEndHour = String(plusTwoHour).padStart(2, '0') + ':00';
+
+  const [date, setDate] = useState(localTodayStr);
   const [startTime, setStartTime] = useState(defaultStartHour);
   const [endTime, setEndTime] = useState(defaultEndHour);
 
@@ -54,22 +58,42 @@ const FindParkingPage = () => {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [bookingLoading, setBookingLoading] = useState(false);
 
+  // Calculate if the reservation crosses midnight (overnight into next day)
+  const isOvernight = useMemo(() => {
+    if (!startTime || !endTime) return false;
+    const [sH, sM] = startTime.split(':').map(Number);
+    const [eH, eM] = endTime.split(':').map(Number);
+    const startMins = sH * 60 + sM;
+    const endMins = eH * 60 + eM;
+    return endMins < startMins;
+  }, [startTime, endTime]);
+
   // Construct ISO timestamps
   const startISO = useMemo(() => {
+    if (!date || !startTime) return '';
     return new Date(`${date}T${startTime}:00`).toISOString();
   }, [date, startTime]);
 
   const endISO = useMemo(() => {
-    return new Date(`${date}T${endTime}:00`).toISOString();
-  }, [date, endTime]);
+    if (!date || !endTime || !startTime) return '';
+    const startObj = new Date(`${date}T${startTime}:00`);
+    let endObj = new Date(`${date}T${endTime}:00`);
+
+    // If end time is earlier than start time, it rolls over to next day (overnight booking)
+    if (endObj < startObj) {
+      endObj = new Date(endObj.getTime() + 24 * 60 * 60 * 1000);
+    }
+    return endObj.toISOString();
+  }, [date, startTime, endTime]);
 
   // Duration in hours
   const durationHours = useMemo(() => {
+    if (!startISO || !endISO || startTime === endTime) return 0;
     const s = new Date(startISO).getTime();
     const e = new Date(endISO).getTime();
     if (isNaN(s) || isNaN(e) || e <= s) return 0;
     return parseFloat(((e - s) / (1000 * 60 * 60)).toFixed(2));
-  }, [startISO, endISO]);
+  }, [startISO, endISO, startTime, endTime]);
 
   // Fetch areas on mount
   useEffect(() => {
@@ -217,7 +241,7 @@ const FindParkingPage = () => {
             <input
               type="date"
               value={date}
-              min={todayStr}
+              min={localTodayStr}
               onChange={(e) => setDate(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none"
             />
@@ -237,10 +261,17 @@ const FindParkingPage = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-blue-600" />
-              End Time
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-blue-600" />
+                End Time
+              </label>
+              {isOvernight && (
+                <span className="text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded font-bold">
+                  +1 Day (Overnight)
+                </span>
+              )}
+            </div>
             <input
               type="time"
               value={endTime}
@@ -250,10 +281,23 @@ const FindParkingPage = () => {
           </div>
         </div>
 
-        {durationHours <= 0 && (
+        {durationHours < 0.25 ? (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-            <span>End time must be later than start time. Minimum reservation duration is 15 minutes.</span>
+            <span>End time must be at least 15 minutes after start time.</span>
+          </div>
+        ) : (
+          <div className="p-2.5 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-blue-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-blue-600 flex-shrink-0" />
+              <span>
+                Reservation duration: <strong className="font-bold">{durationHours} hours</strong>
+                {isOvernight && <span className="ml-1.5 text-indigo-700 font-semibold">(Overnight schedule)</span>}
+              </span>
+            </div>
+            <span className="text-[11px] text-blue-600 font-medium hidden sm:inline">
+              Real-time slot availability active
+            </span>
           </div>
         )}
 
@@ -492,7 +536,7 @@ const FindParkingPage = () => {
               <div className="flex justify-between items-center">
                 <span className="text-blue-700">Reserved Window</span>
                 <span className="font-semibold text-blue-950">
-                  {startTime} to {endTime} ({durationHours} hours)
+                  {startTime} to {endTime} ({durationHours} hours {isOvernight ? '• Next Day' : ''})
                 </span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-blue-200">

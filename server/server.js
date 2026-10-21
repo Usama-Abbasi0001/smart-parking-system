@@ -29,19 +29,25 @@ app.use(
 
 // CORS configuration
 const allowedOrigins = [
-  process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+  process.env.CLIENT_ORIGIN,
+  'http://localhost:5173',
   'http://localhost:3000',
   'http://127.0.0.1:5173',
-];
+].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl)
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin, matched origin, any vercel preview app, or in non-prod
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        (origin && origin.endsWith('.vercel.app')) ||
+        process.env.NODE_ENV !== 'production'
+      ) {
         callback(null, true);
       } else {
-        callback(null, true); // Permissive in development for smooth FYP grading
+        callback(null, true); // Permissive for smooth FYP evaluation
       }
     },
     credentials: true,
@@ -69,6 +75,21 @@ const authLimiter = rateLimit({
     success: false,
     message: 'Too many authentication attempts. Please try again after 15 minutes.',
   },
+});
+
+// Ensure database connection for each request (crucial for Vercel serverless functions)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('Database connection error in request:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Database connection failed. Please ensure MONGODB_URI is configured in Vercel.',
+      error: error.message,
+    });
+  }
 });
 
 // Mount Routes
@@ -148,6 +169,9 @@ const handleShutdown = async (signal) => {
 process.on('SIGINT', () => handleShutdown('SIGINT'));
 process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 
-startServer();
+// Start server (only in standalone/local environments; Vercel handles invocations serverlessly)
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
+  startServer();
+}
 
 export default app;

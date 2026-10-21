@@ -4,6 +4,11 @@ let memoryServer = null;
 
 export const connectDB = async () => {
   try {
+    // If connection already open (cached in serverless container), reuse it
+    if (mongoose.connection.readyState === 1) {
+      return;
+    }
+
     const mongoUri = process.env.MONGODB_URI;
 
     if (mongoUri) {
@@ -11,10 +16,17 @@ export const connectDB = async () => {
       await mongoose.connect(mongoUri, {
         serverSelectionTimeoutMS: 8000,
         socketTimeoutMS: 45000,
-        maxPoolSize: 20,
+        maxPoolSize: 10,
       });
       console.log(`MongoDB Connected successfully to: ${mongoose.connection.host}`);
       return;
+    }
+
+    // In serverless environments (Vercel), in-memory binary cannot be downloaded
+    if (process.env.VERCEL) {
+      throw new Error(
+        'MONGODB_URI environment variable is missing on Vercel. Please add MONGODB_URI to your Vercel Project Environment Variables.'
+      );
     }
 
     // Fallback in development when no remote URI is configured
@@ -28,7 +40,7 @@ export const connectDB = async () => {
   } catch (error) {
     console.error(`MongoDB Connection Error: ${error.message}`);
     // If remote connection failed and we are not using memory server, attempt in-memory fallback
-    if (!memoryServer && process.env.NODE_ENV !== 'production') {
+    if (!memoryServer && process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
       try {
         console.log('Attempting in-memory MongoDB fallback after remote connection failure...');
         const { MongoMemoryServer } = await import('mongodb-memory-server');
@@ -41,7 +53,11 @@ export const connectDB = async () => {
         console.error('Fallback MongoDB also failed:', fallbackErr.message);
       }
     }
-    process.exit(1);
+    if (!process.env.VERCEL) {
+      process.exit(1);
+    } else {
+      throw error;
+    }
   }
 };
 
