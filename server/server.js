@@ -84,9 +84,14 @@ app.use(async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Database connection error in request:', error.message);
+    const isMissingUri = !process.env.MONGODB_URI;
+    const userMessage = isMissingUri
+      ? 'MONGODB_URI is missing in Vercel. Please add MONGODB_URI to your backend project and Redeploy.'
+      : `MongoDB connection error: ${error.message}. Please allow IP 0.0.0.0/0 in MongoDB Atlas Network Access.`;
+
     return res.status(500).json({
       success: false,
-      message: 'Database connection failed. Please ensure MONGODB_URI is configured in Vercel.',
+      message: userMessage,
       error: error.message,
     });
   }
