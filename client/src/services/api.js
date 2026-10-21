@@ -5,7 +5,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000,
+  timeout: 30000,
 });
 
 // Request Interceptor: Attach JWT token if present
@@ -48,8 +48,11 @@ export const getErrorMessage = (error) => {
   if (error.response?.data?.errors?.[0]?.message) {
     return error.response.data.errors[0].message;
   }
+  if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+    return 'Database cloud connection took too long. Please refresh the page.';
+  }
   if (error.message === 'Network Error') {
-    return 'Cannot reach the parking server. Please verify your internet connection or server status.';
+    return 'Cannot reach the parking server. Please verify your internet connection.';
   }
   return error.message || 'An unexpected error occurred. Please try again.';
 };

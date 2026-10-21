@@ -8,7 +8,11 @@ export const connectDB = async () => {
 
     if (mongoUri) {
       console.log('Connecting to MongoDB via MONGODB_URI...');
-      await mongoose.connect(mongoUri);
+      await mongoose.connect(mongoUri, {
+        serverSelectionTimeoutMS: 8000,
+        socketTimeoutMS: 45000,
+        maxPoolSize: 20,
+      });
       console.log(`MongoDB Connected successfully to: ${mongoose.connection.host}`);
       return;
     }
