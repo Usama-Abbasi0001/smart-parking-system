@@ -15,19 +15,29 @@ const getTransporter = async () => {
   const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
 
   if (user && pass) {
-    cachedTransporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: { user, pass },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
+    const isGmail = host.includes('gmail') || user.includes('gmail');
+    cachedTransporter = nodemailer.createTransport(
+      isGmail
+        ? {
+            service: 'gmail',
+            auth: { user, pass },
+            tls: { rejectUnauthorized: false },
+          }
+        : {
+            host,
+            port,
+            secure,
+            auth: { user, pass },
+            tls: { rejectUnauthorized: false },
+          }
+    );
     return cachedTransporter;
   }
 
   // Fallback: If no real credentials, log clearly and use jsonTransport/test transport
+  console.warn(
+    '[EmailService] ⚠️ Notice: Real Gmail delivery requires a 16-digit Google App Password in server/.env (SMTP_PASS=xxxx). An email was simulated locally.'
+  );
   cachedTransporter = nodemailer.createTransport({
     jsonTransport: true,
   });

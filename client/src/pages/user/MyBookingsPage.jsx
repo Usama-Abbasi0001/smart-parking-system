@@ -41,6 +41,7 @@ const MyBookingsPage = () => {
     { id: 'pending_payment', label: 'Pending Payment' },
     { id: 'confirmed', label: 'Confirmed' },
     { id: 'completed', label: 'Completed' },
+    { id: 'cancelled', label: 'Cancelled' },
   ];
 
   const fetchBookings = async (page = 1) => {
@@ -179,7 +180,7 @@ const MyBookingsPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {bookings.filter((b) => b.bookingStatus !== 'cancelled').map((b) => {
+                {bookings.map((b) => {
                   const canCancel =
                     !['cancelled', 'completed'].includes(b.bookingStatus) &&
                     new Date(b.endTime).getTime() > Date.now();
@@ -266,7 +267,7 @@ const MyBookingsPage = () => {
 
           {/* Mobile Card View */}
           <div className="md:hidden divide-y divide-slate-100 p-4 space-y-4">
-            {bookings.filter((b) => b.bookingStatus !== 'cancelled').map((b) => (
+            {bookings.map((b) => (
               <div key={b._id} className="pt-4 first:pt-0 space-y-3">
                 <div className="flex items-start justify-between">
                   <div>

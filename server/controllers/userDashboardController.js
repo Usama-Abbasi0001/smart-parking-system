@@ -19,16 +19,13 @@ export const getUserDashboardStats = async (req, res, next) => {
       nextUpcomingBooking,
       unreadNotificationsCount,
     ] = await Promise.all([
-      // Total active & confirmed reservations (excluding cancelled)
-      Booking.countDocuments({
-        ...baseFilter,
-        bookingStatus: { $ne: 'cancelled' },
-      }),
-      // Upcoming reservations
+      // Total reservations created
+      Booking.countDocuments(baseFilter),
+      // Active & upcoming reservations (slot active or scheduled in future)
       Booking.countDocuments({
         ...baseFilter,
         bookingStatus: { $in: ['confirmed', 'pending_payment'] },
-        startTime: { $gte: now },
+        endTime: { $gte: now },
       }),
       // Completed sessions
       Booking.countDocuments({
@@ -38,7 +35,7 @@ export const getUserDashboardStats = async (req, res, next) => {
           { bookingStatus: 'confirmed', endTime: { $lt: now } },
         ],
       }),
-      // Cancelled bookings
+      // Cancelled bookings count
       Booking.countDocuments({
         ...baseFilter,
         bookingStatus: 'cancelled',
@@ -48,11 +45,8 @@ export const getUserDashboardStats = async (req, res, next) => {
         ...baseFilter,
         bookingStatus: 'pending_payment',
       }),
-      // Recent active bookings
-      Booking.find({
-        ...baseFilter,
-        bookingStatus: { $ne: 'cancelled' },
-      })
+      // Recent bookings
+      Booking.find(baseFilter)
         .populate('slotId', 'slotNumber area floorOrZone hourlyRate slotType')
         .populate('userId', 'name email vehicleNumber')
         .sort({ createdAt: -1 })
