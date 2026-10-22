@@ -1,35 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Car,
-  Bell,
   Menu,
   X,
-  User,
-  LogOut,
-  Shield,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  Sparkles,
   Download,
   Smartphone,
   Laptop,
   Share2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useNotifications } from '../context/NotificationContext';
-import Badge from '../components/common/Badge';
 
 const Navbar = ({ onToggleSidebar, isSidebarOpen }) => {
-  const { user, logout, isAdmin } = useAuth();
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  const { isAdmin } = useAuth();
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Check if launched as standalone PWA
@@ -67,28 +53,6 @@ const Navbar = ({ onToggleSidebar, isSidebarOpen }) => {
     } else {
       setShowInstallModal(true);
     }
-  };
-
-  const notifRef = useRef(null);
-  const userMenuRef = useRef(null);
-
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) {
-        setShowNotifications(false);
-      }
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
-        setShowUserMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
   };
 
   return (
@@ -158,160 +122,6 @@ const Navbar = ({ onToggleSidebar, isSidebarOpen }) => {
               <Car className="w-3.5 h-3.5" />
               <span>Find Bay</span>
             </Link>
-
-            {/* In-App Notifications Dropdown */}
-            <div className="relative" ref={notifRef}>
-              <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
-                aria-label="Notifications"
-              >
-                <Bell className="w-5 h-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center animate-pulse shadow-sm">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {showNotifications && (
-                <div className="absolute right-[-45px] sm:right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200 py-3 z-50 animate-scale-in">
-                  <div className="flex items-center justify-between px-4 pb-2 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm text-slate-800">
-                        Notifications
-                      </span>
-                      {unreadCount > 0 && (
-                        <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">
-                          {unreadCount} new
-                        </span>
-                      )}
-                    </div>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={markAllAsRead}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
-                      >
-                        Mark all as read
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-                    {notifications.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-slate-400">
-                        No notifications yet
-                      </div>
-                    ) : (
-                      notifications.map((n) => (
-                        <div
-                          key={n._id}
-                          onClick={() => !n.read && markAsRead(n._id)}
-                          className={`p-3.5 hover:bg-slate-50 transition-colors cursor-pointer flex gap-3 ${
-                            !n.read ? 'bg-blue-50/40' : ''
-                          }`}
-                        >
-                          <div className="mt-0.5">
-                            {n.type === 'payment' ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                            ) : n.type === 'cancellation' ? (
-                              <AlertCircle className="w-4 h-4 text-rose-500" />
-                            ) : (
-                              <Clock className="w-4 h-4 text-blue-500" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-xs font-semibold text-slate-800 leading-snug">
-                              {n.title}
-                            </p>
-                            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                              {n.message}
-                            </p>
-                            <span className="text-[10px] text-slate-400 mt-1 block">
-                              {new Date(n.createdAt).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* User Profile Menu */}
-            <div className="relative" ref={userMenuRef}>
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
-              >
-                <div
-                  className={`w-8 h-8 rounded-full text-white flex items-center justify-center font-bold text-xs shadow-sm transition-all ${
-                    isAdmin
-                      ? 'bg-purple-700 ring-2 ring-purple-400'
-                      : 'bg-slate-900 ring-2 ring-blue-500'
-                  }`}
-                >
-                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                </div>
-                <div className="hidden md:flex flex-col text-left">
-                  <span className="text-xs font-semibold text-slate-800 leading-tight">
-                    {user?.name}
-                  </span>
-                  <span className="text-[10px] text-slate-400 capitalize">
-                    {user?.role} • {user?.vehicleNumber}
-                  </span>
-                </div>
-              </button>
-
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 animate-scale-in">
-                  <div className="px-4 py-2 border-b border-slate-100">
-                    <p className="text-xs font-semibold text-slate-900">{user?.name}</p>
-                    <p className="text-[11px] text-slate-500 truncate">{user?.email}</p>
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      <Badge status={user?.role} text={user?.role} size="sm" />
-                      <span className="text-[10px] font-mono text-slate-500 font-semibold">
-                        {user?.vehicleNumber}
-                      </span>
-                    </div>
-                  </div>
-
-                  <Link
-                    to="/profile"
-                    onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                  >
-                    <User className="w-4 h-4 text-slate-400" />
-                    My Profile & Vehicle
-                  </Link>
-
-                  {isAdmin && (
-                    <Link
-                      to="/admin/dashboard"
-                      onClick={() => setShowUserMenu(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors"
-                    >
-                      <Shield className="w-4 h-4 text-purple-600 animate-pulse" />
-                      Admin Console
-                    </Link>
-                  )}
-
-                  <div className="border-t border-slate-100 my-1" />
-
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                  >
-                    <LogOut className="w-4 h-4 text-rose-500" />
-                    Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>

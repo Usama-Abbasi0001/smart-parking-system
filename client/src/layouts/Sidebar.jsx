@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   MapPin,
@@ -13,11 +13,19 @@ import {
   Info,
   X,
   Car,
+  LogOut,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = ({ isOpen, onClose }) => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    onClose?.();
+    await logout();
+    navigate('/login');
+  };
 
   const userLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -63,7 +71,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="p-4 space-y-6 overflow-y-auto">
+        <div className="p-4 space-y-6 overflow-y-auto flex-1">
           {/* Mobile Drawer Header with Close Button */}
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 lg:hidden">
             <div className="flex items-center gap-2">
@@ -138,6 +146,45 @@ const Sidebar = ({ isOpen, onClose }) => {
               </nav>
             </div>
           )}
+        </div>
+
+        {/* User Profile ID Card at Bottom of Sidebar */}
+        <div className="p-3 border-t border-slate-200/90 bg-slate-50/70">
+          <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all">
+            <Link
+              to="/profile"
+              onClick={onClose}
+              className="flex items-center gap-2.5 min-w-0 flex-1 group"
+              title="View Profile"
+            >
+              <div
+                className={`w-9 h-9 rounded-full text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0 transition-transform group-hover:scale-105 ${
+                  isAdmin
+                    ? 'bg-purple-700 ring-2 ring-purple-300'
+                    : 'bg-gradient-to-tr from-blue-700 to-indigo-600 ring-2 ring-blue-200'
+                }`}
+              >
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">
+                  {user?.name || 'User'}
+                </p>
+                <p className="text-[10px] text-slate-400 font-medium truncate capitalize">
+                  {user?.role === 'admin' ? 'Admin' : 'Driver'} • {user?.vehicleNumber || (isAdmin ? 'ADMIN-001' : 'N/A')}
+                </p>
+              </div>
+            </Link>
+
+            <button
+              onClick={handleLogout}
+              title="Sign Out"
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+              aria-label="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </aside>
     </>
