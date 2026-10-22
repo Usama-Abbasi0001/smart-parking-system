@@ -3,24 +3,93 @@ import { useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../../services/api';
 import {
   Car,
+  Bike,
   Search,
   Filter,
   Calendar,
   Clock,
   MapPin,
-  DollarSign,
-  Zap,
-  Shield,
-  Check,
+  CheckCircle2,
   AlertCircle,
   ArrowRight,
   Info,
+  ShieldCheck,
+  Sparkles,
+  Layers,
+  ChevronRight,
 } from 'lucide-react';
 import Badge from '../../components/common/Badge';
 import Modal from '../../components/common/Modal';
 import { GridSkeleton } from '../../components/common/LoadingSkeleton';
 import EmptyState from '../../components/common/EmptyState';
 import toast from 'react-hot-toast';
+
+const DEFAULT_AREAS = [
+  'Boulevard Mall',
+  'Abdullah Mall',
+  'Chase Value',
+  'Mehran Walk',
+];
+
+const VEHICLE_CONFIGS = {
+  car: {
+    type: 'car',
+    title: 'Car Parking',
+    subtitle: 'Sedans, SUVs, Hatchbacks & Jeeps',
+    hourlyRate: 2500,
+    rateFor2Hours: 5000,
+    icon: Car,
+    color: 'blue',
+    gradient: 'from-blue-600 to-indigo-700',
+    borderStyle: 'border-blue-200 hover:border-blue-500 hover:shadow-blue-500/10',
+    lightBg: 'bg-blue-50/50',
+    badgeText: 'Car Bay',
+    badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
+    features: [
+      'Wide bay with automatic proximity sensors',
+      '24/7 guarded and CCTV covered deck',
+      'Direct elevator access to shopping levels',
+    ],
+  },
+  bike: {
+    type: 'bike',
+    title: 'Bike Parking (Motorcycle)',
+    subtitle: 'Heavy Bikes, Scooters & Motorbikes',
+    hourlyRate: 1250,
+    rateFor2Hours: 2500,
+    icon: Bike,
+    color: 'cyan',
+    gradient: 'from-cyan-600 to-blue-600',
+    borderStyle: 'border-cyan-200 hover:border-cyan-500 hover:shadow-cyan-500/10',
+    lightBg: 'bg-cyan-50/50',
+    badgeText: 'Motorbike Bay',
+    badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    features: [
+      'Heavy-duty ground chain anchor locks',
+      'Covered weatherproof shaded parking',
+      'Dedicated two-wheeler security guard',
+    ],
+  },
+  cycle: {
+    type: 'cycle',
+    title: 'Cycle Parking (Bicycle)',
+    subtitle: 'Sports Bicycles & Commuter Cycles',
+    hourlyRate: 500,
+    rateFor2Hours: 1000,
+    icon: Bike,
+    color: 'emerald',
+    gradient: 'from-emerald-600 to-teal-700',
+    borderStyle: 'border-emerald-200 hover:border-emerald-500 hover:shadow-emerald-500/10',
+    lightBg: 'bg-emerald-50/50',
+    badgeText: 'Cycle Stand',
+    badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    features: [
+      'Dual-wheel steel frame mount and lock bar',
+      'Sheltered eco-station near main gates',
+      'Quick direct access to pedestrian walkways',
+    ],
+  },
+};
 
 const FindParkingPage = () => {
   const navigate = useNavigate();
@@ -44,14 +113,11 @@ const FindParkingPage = () => {
   const [selectedArea, setSelectedArea] = useState('All');
   const [slotType, setSlotType] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [maxPrice, setMaxPrice] = useState(15);
-  const [sortBy, setSortBy] = useState('slotNumber');
-  const [order, setOrder] = useState('asc');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Data states
   const [slots, setSlots] = useState([]);
-  const [areas, setAreas] = useState([]);
+  const [areas, setAreas] = useState(DEFAULT_AREAS);
   const [loading, setLoading] = useState(true);
 
   // Selected slot for reservation modal
@@ -79,7 +145,6 @@ const FindParkingPage = () => {
     const startObj = new Date(`${date}T${startTime}:00`);
     let endObj = new Date(`${date}T${endTime}:00`);
 
-    // If end time is earlier than start time, it rolls over to next day (overnight booking)
     if (endObj < startObj) {
       endObj = new Date(endObj.getTime() + 24 * 60 * 60 * 1000);
     }
@@ -88,10 +153,10 @@ const FindParkingPage = () => {
 
   // Duration in hours
   const durationHours = useMemo(() => {
-    if (!startISO || !endISO || startTime === endTime) return 0;
+    if (!startISO || !endISO || startTime === endTime) return 2;
     const s = new Date(startISO).getTime();
     const e = new Date(endISO).getTime();
-    if (isNaN(s) || isNaN(e) || e <= s) return 0;
+    if (isNaN(s) || isNaN(e) || e <= s) return 2;
     return parseFloat(((e - s) / (1000 * 60 * 60)).toFixed(2));
   }, [startISO, endISO, startTime, endTime]);
 
@@ -100,15 +165,19 @@ const FindParkingPage = () => {
     const fetchAreas = async () => {
       try {
         const res = await api.get('/slots/areas');
-        setAreas(res.data.data || []);
+        if (res.data?.data && res.data.data.length > 0) {
+          setAreas(res.data.data);
+        } else {
+          setAreas(DEFAULT_AREAS);
+        }
       } catch (err) {
-        console.error('Failed to fetch areas:', err);
+        setAreas(DEFAULT_AREAS);
       }
     };
     fetchAreas();
   }, []);
 
-  // Fetch slots whenever time window or primary filters change
+  // Fetch all slots from server
   const fetchSlots = async () => {
     try {
       setLoading(true);
@@ -116,9 +185,7 @@ const FindParkingPage = () => {
         startTime: startISO,
         endTime: endISO,
         area: selectedArea,
-        slotType,
-        sortBy,
-        order,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
       };
 
       const res = await api.get('/slots', { params });
@@ -134,58 +201,88 @@ const FindParkingPage = () => {
     if (durationHours > 0) {
       fetchSlots();
     }
-  }, [date, startTime, endTime, selectedArea, slotType, sortBy, order]);
+  }, [date, startTime, endTime, selectedArea, statusFilter]);
 
-  // Client-side quick filter for search & price
-  const filteredSlots = useMemo(() => {
-    return slots.filter((slot) => {
+  // Calculate vehicle counts and available bays
+  const vehicleCardsData = useMemo(() => {
+    const targetAreas = selectedArea === 'All' ? areas : [selectedArea];
+
+    // Filter slots based on selected area & search keyword
+    const areaFilteredSlots = slots.filter((slot) => {
+      if (selectedArea !== 'All' && slot.area !== selectedArea) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        const matchesNumber = slot.slotNumber.toLowerCase().includes(q);
         const matchesArea = slot.area.toLowerCase().includes(q);
         const matchesFloor = slot.floorOrZone.toLowerCase().includes(q);
-        if (!matchesNumber && !matchesArea && !matchesFloor) return false;
+        const matchesType = slot.slotType.toLowerCase().includes(q);
+        if (!matchesArea && !matchesFloor && !matchesType) return false;
       }
-      if (slot.hourlyRate > maxPrice) return false;
-      if (statusFilter !== 'all' && slot.currentStatus !== statusFilter) return false;
       return true;
     });
-  }, [slots, searchQuery, maxPrice, statusFilter]);
 
-  // Slot card background/border styles by status
-  const getSlotCardStyle = (slot) => {
-    if (selectedSlot?._id === slot._id) {
-      return 'border-blue-500 bg-blue-50/50 ring-2 ring-blue-500 shadow-md';
-    }
-    switch (slot.currentStatus) {
-      case 'available':
-        return 'border-emerald-200 bg-white hover:border-emerald-400 hover:shadow-md';
-      case 'occupied':
-        return 'border-rose-200 bg-rose-50/30 opacity-90';
-      case 'reserved':
-        return 'border-amber-200 bg-amber-50/30';
-      case 'maintenance':
-      case 'inactive':
-        return 'border-slate-200 bg-slate-50 opacity-70';
-      default:
-        return 'border-slate-200 bg-white';
-    }
-  };
+    const types = ['car', 'bike', 'cycle'];
 
-  const handleSelectSlot = (slot) => {
-    if (!slot.isAvailable) {
-      if (slot.currentStatus === 'maintenance') {
-        toast.error('This slot is currently under maintenance.');
-      } else if (slot.currentStatus === 'occupied') {
-        toast.error('This slot is already occupied during this time window.');
-      } else {
-        toast.error('This slot is currently unavailable for the chosen interval.');
-      }
+    return types
+      .filter((type) => {
+        if (slotType !== 'all' && slotType !== type) return false;
+        return true;
+      })
+      .map((type) => {
+        const config = VEHICLE_CONFIGS[type];
+        const ofType = areaFilteredSlots.filter((s) => s.slotType === type);
+
+        const availableSlots = ofType.filter(
+          (s) => s.isAvailable && s.currentStatus === 'available'
+        );
+        const occupiedCount = ofType.filter(
+          (s) => s.currentStatus === 'occupied'
+        ).length;
+        const reservedCount = ofType.filter(
+          (s) => s.currentStatus === 'reserved'
+        ).length;
+        const maintenanceCount = ofType.filter(
+          (s) => s.currentStatus === 'maintenance'
+        ).length;
+
+        // Calculate dynamic total price for the selected hours
+        const computedAmount = Math.max(
+          100,
+          Math.round(durationHours * config.hourlyRate)
+        );
+
+        return {
+          ...config,
+          totalCount: ofType.length,
+          availableCount: availableSlots.length,
+          occupiedCount,
+          reservedCount,
+          maintenanceCount,
+          availableSlots,
+          allSlots: ofType,
+          computedAmount,
+        };
+      })
+      .filter((item) => {
+        if (statusFilter === 'available' && item.availableCount === 0) return false;
+        if (statusFilter === 'occupied' && item.occupiedCount === 0) return false;
+        if (statusFilter === 'reserved' && item.reservedCount === 0) return false;
+        if (statusFilter === 'maintenance' && item.maintenanceCount === 0) return false;
+        return true;
+      });
+  }, [slots, selectedArea, slotType, statusFilter, searchQuery, areas, durationHours]);
+
+  // Trigger booking for a vehicle category
+  const handleBookVehicleType = (vehicleCard) => {
+    if (vehicleCard.availableCount === 0 || vehicleCard.availableSlots.length === 0) {
+      toast.error(`No ${vehicleCard.title} slots are available for this time window.`);
       return;
     }
-    setSelectedSlot(slot);
+    // Select first available slot
+    const slotToBook = vehicleCard.availableSlots[0];
+    setSelectedSlot(slotToBook);
   };
 
+  // Confirm reservation
   const handleCreateBooking = async () => {
     if (!selectedSlot) return;
 
@@ -203,12 +300,11 @@ const FindParkingPage = () => {
       });
 
       const booking = res.data.data.booking;
-      toast.success('Slot reserved! Proceeding to simulated payment...');
+      toast.success('Parking reserved successfully! Proceeding to checkout...');
       setSelectedSlot(null);
       navigate(`/checkout/${booking._id}`);
     } catch (err) {
       toast.error(getErrorMessage(err));
-      // Refresh slots to show real-time collision
       fetchSlots();
     } finally {
       setBookingLoading(false);
@@ -218,21 +314,26 @@ const FindParkingPage = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <MapPin className="w-6 h-6 text-blue-600" />
             Find & Reserve Parking
           </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Real-time database availability check across all zones
+          <p className="text-xs text-slate-500 mt-0.5">
+            Real-time live parking availability across Boulevard Mall, Abdullah Mall, Chase Value & Mehran Walk
           </p>
+        </div>
+
+        <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-blue-800 self-start md:self-auto">
+          <Sparkles className="w-4 h-4 text-blue-600" />
+          <span>Instant Automated Boom Barrier Pass</span>
         </div>
       </div>
 
-      {/* Date, Time & Search Bar Container */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
-        {/* Schedule Selector */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Primary Filter Bar: Date & Time Picker */}
+      <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-blue-600" />
@@ -243,7 +344,7 @@ const FindParkingPage = () => {
               value={date}
               min={localTodayStr}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none"
+              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none font-medium"
             />
           </div>
 
@@ -256,7 +357,7 @@ const FindParkingPage = () => {
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none"
+              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none font-medium"
             />
           </div>
 
@@ -276,7 +377,7 @@ const FindParkingPage = () => {
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none"
+              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none font-medium"
             />
           </div>
         </div>
@@ -287,7 +388,7 @@ const FindParkingPage = () => {
             <span>End time must be at least 15 minutes after start time.</span>
           </div>
         ) : (
-          <div className="p-2.5 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-blue-800 flex items-center justify-between">
+          <div className="p-3 bg-blue-50/80 border border-blue-200/90 rounded-2xl text-xs text-blue-900 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-blue-600 flex-shrink-0" />
               <span>
@@ -295,23 +396,23 @@ const FindParkingPage = () => {
                 {isOvernight && <span className="ml-1.5 text-indigo-700 font-semibold">(Overnight schedule)</span>}
               </span>
             </div>
-            <span className="text-[11px] text-blue-600 font-medium hidden sm:inline">
-              Real-time slot availability active
+            <span className="text-[11px] text-blue-700 font-bold hidden sm:inline">
+              ✓ Concurrency-locked Real-Time Availability
             </span>
           </div>
         )}
 
         {/* Filter Controls Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-3 border-t border-slate-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
           {/* Search by keyword */}
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input
               type="text"
-              placeholder="Search slot (e.g. CP-101)..."
+              placeholder="Search area, mall, or zone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none"
+              className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none font-medium"
             />
           </div>
 
@@ -320,30 +421,28 @@ const FindParkingPage = () => {
             <select
               value={selectedArea}
               onChange={(e) => setSelectedArea(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none"
+              className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none font-semibold text-slate-800 cursor-pointer"
             >
               <option value="All">All Parking Areas</option>
-              {areas.map((a) => (
-                <option key={a} value={a}>{a}</option>
+              {DEFAULT_AREAS.map((a) => (
+                <option key={a} value={a}>
+                  📍 {a}
+                </option>
               ))}
             </select>
           </div>
 
-          {/* Slot Type */}
+          {/* Vehicle Type */}
           <div>
             <select
               value={slotType}
               onChange={(e) => setSlotType(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none capitalize"
+              className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none font-semibold text-slate-800 cursor-pointer"
             >
-              <option value="all">All Vehicle Types</option>
+              <option value="all">All Vehicle Types (Car, Bike, Cycle)</option>
               <option value="car">🚗 Car (PKR 5,000 / 2 hrs)</option>
               <option value="bike">🏍️ Bike (PKR 2,500 / 2 hrs)</option>
               <option value="cycle">🚲 Cycle (PKR 1,000 / 2 hrs)</option>
-              <option value="standard">Standard</option>
-              <option value="accessible">Accessible / Disability</option>
-              <option value="ev_charging">EV Charging Hub</option>
-              <option value="vip">VIP Executive</option>
             </select>
           </div>
 
@@ -352,7 +451,7 @@ const FindParkingPage = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none"
+              className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none font-semibold text-slate-800 cursor-pointer"
             >
               <option value="all">All Statuses</option>
               <option value="available">Only Available</option>
@@ -361,63 +460,44 @@ const FindParkingPage = () => {
               <option value="maintenance">Under Maintenance</option>
             </select>
           </div>
-
-          {/* Sort By */}
-          <div>
-            <select
-              value={`${sortBy}-${order}`}
-              onChange={(e) => {
-                const [sb, ord] = e.target.value.split('-');
-                setSortBy(sb);
-                setOrder(ord);
-              }}
-              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none"
-            >
-              <option value="slotNumber-asc">Slot Number (A-Z)</option>
-              <option value="hourlyRate-asc">Price (Low to High)</option>
-              <option value="hourlyRate-desc">Price (High to Low)</option>
-            </select>
-          </div>
         </div>
       </div>
 
-      {/* Visual Status Legend */}
+      {/* Visual Status Legend & Areas Indicator */}
       <div className="bg-white rounded-2xl border border-slate-200 px-5 py-3 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
-        <span className="font-semibold text-slate-500 uppercase tracking-wider text-[11px]">
-          Availability Legend:
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+            Selected Location:
+          </span>
+          <span className="bg-blue-50 text-blue-800 border border-blue-200 font-bold px-2.5 py-1 rounded-lg">
+            📍 {selectedArea === 'All' ? 'All 4 Malls Active' : selectedArea}
+          </span>
+        </div>
+
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm" />
-            <span className="font-medium text-slate-700">Available</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
+            <span className="font-semibold text-slate-700">Available</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-rose-500 shadow-sm" />
-            <span className="font-medium text-slate-700">Occupied (Active)</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm" />
+            <span className="font-semibold text-slate-700">Occupied</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-amber-500 shadow-sm" />
-            <span className="font-medium text-slate-700">Reserved / Pending</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-blue-500 shadow-sm" />
-            <span className="font-medium text-slate-700">Selected</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-slate-400 shadow-sm" />
-            <span className="font-medium text-slate-700">Maintenance / Off</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm" />
+            <span className="font-semibold text-slate-700">Reserved</span>
           </div>
         </div>
       </div>
 
-      {/* Slot Grid */}
+      {/* Vehicle Category Parking Cards Section */}
       {loading ? (
-        <GridSkeleton count={10} />
-      ) : filteredSlots.length === 0 ? (
+        <GridSkeleton count={3} />
+      ) : vehicleCardsData.length === 0 ? (
         <EmptyState
           title="No parking slots found"
-          description="Try broadening your search filters or selecting a different time window."
-          actionLabel="Reset Filters"
+          description="Try selecting a different area or resetting the filters."
+          actionLabel="Reset to All Areas"
           onAction={() => {
             setSelectedArea('All');
             setSlotType('all');
@@ -426,71 +506,132 @@ const FindParkingPage = () => {
           }}
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredSlots.map((slot) => {
-            const cardStyle = getSlotCardStyle(slot);
-            const isSelected = selectedSlot?._id === slot._id;
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {vehicleCardsData.map((vc) => {
+            const Icon = vc.icon;
+            const isAvailable = vc.availableCount > 0;
 
             return (
               <div
-                key={slot._id}
-                onClick={() => handleSelectSlot(slot)}
-                className={`group rounded-2xl p-4 sm:p-5 border transition-all duration-300 cursor-pointer flex flex-col justify-between hover:-translate-y-1.5 hover:shadow-xl active:scale-[0.98] animate-fade-in ${cardStyle}`}
+                key={vc.type}
+                className={`bg-white rounded-3xl border-2 transition-all duration-300 shadow-md hover:shadow-2xl hover:-translate-y-1.5 flex flex-col justify-between overflow-hidden ${vc.borderStyle}`}
               >
                 <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-lg font-black tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
-                        {slot.slotNumber}
+                  {/* Card Header Banner */}
+                  <div className={`p-6 bg-gradient-to-r ${vc.gradient} text-white relative`}>
+                    <div className="flex items-start justify-between">
+                      <div className="w-13 h-13 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner">
+                        <Icon className="w-7 h-7" />
+                      </div>
+                      <span className="bg-white/20 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                        {vc.badgeText}
                       </span>
-                      {slot.isAvailable && (
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 glow-emerald" />
-                      )}
                     </div>
-                    <Badge status={slot.currentStatus} size="sm" />
+
+                    <h3 className="text-xl font-black mt-4 tracking-tight">
+                      {vc.title}
+                    </h3>
+                    <p className="text-xs text-white/80 font-medium mt-0.5">
+                      {vc.subtitle}
+                    </p>
                   </div>
 
-                  <p className="text-xs font-semibold text-slate-700 mt-1.5">
-                    {slot.area}
-                  </p>
-                  <p className="text-[11px] text-slate-400">
-                    {slot.floorOrZone} • <span className="capitalize">{slot.slotType.replace('_', ' ')}</span>
-                  </p>
+                  {/* Card Content & Availability Counts */}
+                  <div className="p-6 space-y-5">
+                    {/* Real-time Available Bays Counter */}
+                    <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                          Active Availability
+                        </span>
+                        <span
+                          className={`text-xs font-black px-2.5 py-0.5 rounded-full ${
+                            isAvailable
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : 'bg-rose-100 text-rose-800 border border-rose-200'
+                          }`}
+                        >
+                          {isAvailable ? '✓ Open for Booking' : '✗ Fully Occupied'}
+                        </span>
+                      </div>
 
-                  {slot.description && (
-                    <p className="text-[11px] text-slate-500 mt-2 line-clamp-1 italic bg-slate-50/80 px-2 py-1 rounded-lg">
-                      "{slot.description}"
-                    </p>
-                  )}
+                      <div className="mt-2 flex items-baseline gap-2">
+                        <span className="text-3xl font-black text-slate-900">
+                          {vc.availableCount}
+                        </span>
+                        <span className="text-sm font-bold text-slate-400">
+                          / {vc.totalCount} Bays Available
+                        </span>
+                      </div>
+
+                      {/* Mini Breakdown Badges */}
+                      <div className="mt-3 pt-3 border-t border-slate-200/70 flex flex-wrap gap-2 text-[11px]">
+                        <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-semibold border border-emerald-200">
+                          {vc.availableCount} Vacant
+                        </span>
+                        <span className="bg-rose-50 text-rose-700 px-2 py-0.5 rounded font-semibold border border-rose-200">
+                          {vc.occupiedCount} Occupied
+                        </span>
+                        <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-semibold border border-amber-200">
+                          {vc.reservedCount} Reserved
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Pricing Display */}
+                    <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                          Total Rate ({durationHours} hrs)
+                        </span>
+                        <span className="text-2xl font-black text-white">
+                          PKR {vc.computedAmount.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          Standard Base
+                        </span>
+                        <span className="text-xs font-bold text-blue-300">
+                          PKR {vc.hourlyRate.toLocaleString()} / hr
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Features List */}
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Included Amenities
+                      </span>
+                      {vc.features.map((feat, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                          <span>{feat}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100/80 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
-                      Hourly Rate
+                {/* Card Action Button */}
+                <div className="p-6 pt-0">
+                  <button
+                    type="button"
+                    disabled={!isAvailable}
+                    onClick={() => handleBookVehicleType(vc)}
+                    className={`w-full py-3.5 px-4 rounded-2xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      isAvailable
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-xl active:scale-[0.98]'
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                    }`}
+                  >
+                    <span>
+                      {isAvailable
+                        ? `Book ${vc.title} (PKR ${vc.computedAmount.toLocaleString()})`
+                        : 'Currently Fully Booked'}
                     </span>
-                    <span className="text-base font-black text-slate-900">
-                      PKR {slot.hourlyRate.toFixed(2)}
-                      <span className="text-[10px] text-slate-400 font-normal">/hr</span>
-                    </span>
-                  </div>
-
-                  {slot.isAvailable ? (
-                    <button
-                      type="button"
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm ${
-                        isSelected
-                          ? 'bg-blue-600 text-white shadow-blue-500/30'
-                          : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 group-hover:scale-105'
-                      }`}
-                    >
-                      {isSelected ? 'Selected' : 'Book Now'}
-                    </button>
-                  ) : (
-                    <span className="text-[11px] font-semibold text-slate-400 capitalize">
-                      {slot.currentStatus}
-                    </span>
-                  )}
+                    {isAvailable && <ArrowRight className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
             );
@@ -498,7 +639,7 @@ const FindParkingPage = () => {
         </div>
       )}
 
-      {/* Reservation Confirmation Drawer / Modal */}
+      {/* Reservation Confirmation Modal */}
       <Modal
         isOpen={!!selectedSlot}
         onClose={() => setSelectedSlot(null)}
@@ -508,23 +649,29 @@ const FindParkingPage = () => {
         {selectedSlot && (
           <div className="space-y-4 text-xs">
             {/* Slot summary */}
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
               <div className="flex justify-between items-center">
-                <span className="text-slate-500">Parking Bay</span>
-                <span className="font-mono font-bold text-sm text-slate-900">
+                <span className="text-slate-500 font-medium">Assigned Bay</span>
+                <span className="font-mono font-black text-sm text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-lg">
                   {selectedSlot.slotNumber}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500">Area & Zone</span>
-                <span className="font-semibold text-slate-800">
-                  {selectedSlot.area} ({selectedSlot.floorOrZone})
+                <span className="text-slate-500 font-medium">Location / Mall</span>
+                <span className="font-bold text-slate-900">
+                  {selectedSlot.area}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500">Slot Type</span>
-                <span className="capitalize font-medium text-slate-800">
-                  {selectedSlot.slotType.replace('_', ' ')}
+                <span className="text-slate-500 font-medium">Floor / Zone</span>
+                <span className="font-semibold text-slate-800">
+                  {selectedSlot.floorOrZone}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Vehicle Category</span>
+                <span className="capitalize font-bold text-slate-800">
+                  {selectedSlot.slotType} Parking
                 </span>
               </div>
             </div>
@@ -532,37 +679,37 @@ const FindParkingPage = () => {
             {/* Time interval & price calculation */}
             <div className="bg-blue-50/60 p-4 rounded-2xl border border-blue-100 space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-blue-700">Date</span>
-                <span className="font-semibold text-blue-950">{date}</span>
+                <span className="text-blue-700 font-medium">Booking Date</span>
+                <span className="font-bold text-blue-950">{date}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-blue-700">Reserved Window</span>
-                <span className="font-semibold text-blue-950">
+                <span className="text-blue-700 font-medium">Reserved Window</span>
+                <span className="font-bold text-blue-950">
                   {startTime} to {endTime} ({durationHours} hours {isOvernight ? '• Next Day' : ''})
                 </span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-blue-200">
-                <span className="font-bold text-blue-900 text-sm">Estimated Total</span>
-                <span className="font-black text-blue-950 text-lg">
-                  PKR {Math.max(1, (durationHours * selectedSlot.hourlyRate)).toFixed(2)}
+                <span className="font-black text-blue-900 text-sm">Total Due</span>
+                <span className="font-black text-blue-950 text-xl">
+                  PKR {Math.round(durationHours * selectedSlot.hourlyRate).toLocaleString()}
                 </span>
               </div>
             </div>
 
-            <div className="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-              <div className="font-semibold text-slate-700 flex items-center gap-1">
+            <div className="text-[11px] text-slate-500 bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
+              <div className="font-bold text-slate-700 flex items-center gap-1.5">
                 <Info className="w-3.5 h-3.5 text-blue-600" />
-                Reservation Rules
+                <span>Smart Parking Notice</span>
               </div>
-              <p>• Your slot will be held for 15 minutes to complete simulated checkout.</p>
-              <p>• Overbooking is strictly prevented by real-time concurrency locks.</p>
+              <p>• Your parking slot will be reserved immediately upon clicking proceed.</p>
+              <p>• You will receive an instant digital QR Code pass for boom barrier entry.</p>
             </div>
 
             <div className="pt-2 flex gap-3">
               <button
                 type="button"
                 onClick={() => setSelectedSlot(null)}
-                className="w-1/2 py-2.5 px-4 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition-colors"
+                className="w-1/2 py-3 px-4 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -570,7 +717,7 @@ const FindParkingPage = () => {
                 type="button"
                 disabled={bookingLoading}
                 onClick={handleCreateBooking}
-                className="w-1/2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md shadow-blue-500/20 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+                className="w-1/2 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-500/20 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {bookingLoading ? 'Reserving...' : 'Proceed to Pay'}
                 <ArrowRight className="w-4 h-4" />
