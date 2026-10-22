@@ -5,6 +5,7 @@ import Payment from '../models/Payment.js';
 import Notification from '../models/Notification.js';
 import { checkSlotAvailability } from '../services/availabilityService.js';
 import { generateBookingQRCode } from '../services/qrService.js';
+import { sendBookingConfirmationEmail } from '../services/emailService.js';
 
 /**
  * Generate a unique, readable booking reference
@@ -374,9 +375,19 @@ export const demoPayment = async (req, res, next) => {
       await Notification.create({
         userId: req.user._id,
         title: 'Payment Successful - Booking Confirmed!',
-        message: `Your payment of $${booking.amount.toFixed(2)} was simulated successfully. Reference: ${booking.bookingReference}.`,
+        message: `Your payment of PKR ${Number(booking.amount).toLocaleString()} was processed successfully. Reference: ${booking.bookingReference}.`,
         type: 'payment',
         bookingId: booking._id,
+      });
+
+      // Dispatch automated confirmation email with full parking details (non-blocking)
+      sendBookingConfirmationEmail({
+        user: req.user,
+        booking,
+        slot: booking.slotId,
+        payment,
+      }).catch((emailErr) => {
+        console.warn('[BookingController] Email dispatch warning:', emailErr.message);
       });
 
       return res.status(200).json({
@@ -416,7 +427,7 @@ export const demoPayment = async (req, res, next) => {
       await Notification.create({
         userId: req.user._id,
         title: 'Payment Simulation Failed',
-        message: `Payment attempt of $${booking.amount.toFixed(2)} was declined (Demo Test). You may retry before reservation expires.`,
+        message: `Payment attempt of PKR ${Number(booking.amount).toLocaleString()} was declined (Demo Test). You may retry before reservation expires.`,
         type: 'payment',
         bookingId: booking._id,
       });

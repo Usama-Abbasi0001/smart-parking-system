@@ -46,6 +46,18 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
+    // Refresh active status (throttled every 30 seconds, non-blocking)
+    const now = Date.now();
+    const lastActiveTime = user.lastActive ? new Date(user.lastActive).getTime() : 0;
+    if (!user.isOnline || (now - lastActiveTime > 30000)) {
+      User.updateOne(
+        { _id: user._id },
+        { $set: { isOnline: true, lastActive: new Date() } }
+      ).exec().catch(() => {});
+      user.isOnline = true;
+      user.lastActive = new Date();
+    }
+
     req.user = user;
     next();
   } catch (error) {

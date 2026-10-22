@@ -100,14 +100,6 @@ export const login = async (req, res, next) => {
       });
     }
 
-    // Clients must login using their car plate number only; only Admin can login with email
-    if (rawIdentifier.includes('@') && user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Clients must log in using their Car Number Plate.',
-      });
-    }
-
     if (user.accountStatus === 'deactivated') {
       return res.status(403).json({
         success: false,
@@ -122,6 +114,11 @@ export const login = async (req, res, next) => {
         message: 'Invalid vehicle plate number / email or password.',
       });
     }
+
+    // Mark user as online and update last active time
+    user.isOnline = true;
+    user.lastActive = new Date();
+    await user.save();
 
     const token = generateToken(user._id, user.role);
 
@@ -142,6 +139,26 @@ export const login = async (req, res, next) => {
 };
 
 export const logout = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const secret = process.env.JWT_SECRET || 'dev_jwt_secret_smart_parking_fyp_key_2026_secure';
+      try {
+        const decoded = jwt.verify(token, secret);
+        if (decoded?.id) {
+          await User.findByIdAndUpdate(decoded.id, {
+            $set: { isOnline: false, lastActive: new Date() },
+          });
+        }
+      } catch (jwtErr) {
+        // Token might be expired, but we still handle cleanly
+      }
+    }
+  } catch (err) {
+    // Non-fatal
+  }
+
   res.status(200).json({
     success: true,
     message: 'Logged out successfully.',

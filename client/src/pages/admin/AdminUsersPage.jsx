@@ -42,9 +42,9 @@ const AdminUsersPage = () => {
     return () => window.removeEventListener('click', handleOutsideClick);
   }, []);
 
-  const fetchUsers = async (page = 1) => {
+  const fetchUsers = async (page = 1, isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
       const res = await api.get('/admin/users', {
         params: {
           page,
@@ -57,15 +57,19 @@ const AdminUsersPage = () => {
       setUsers(res.data.data.users || []);
       setPagination(res.data.data.pagination);
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      if (!isSilent) toast.error(getErrorMessage(err));
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchUsers(1);
-  }, [roleFilter, statusFilter]);
+    const interval = setInterval(() => {
+      fetchUsers(pagination.page || 1, true);
+    }, 12000);
+    return () => clearInterval(interval);
+  }, [roleFilter, statusFilter, pagination.page]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -138,8 +142,9 @@ const AdminUsersPage = () => {
             className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none"
           >
             <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="deactivated">Deactivated</option>
+            <option value="online">🟢 Online Drivers</option>
+            <option value="offline">⚪ Offline Drivers</option>
+            <option value="deactivated">🔴 Deactivated</option>
           </select>
         </div>
       </div>
@@ -183,7 +188,17 @@ const AdminUsersPage = () => {
                       {u.bookingCount || 0} bookings
                     </td>
                     <td className="px-6 py-4">
-                      <Badge status={u.accountStatus} size="sm" />
+                      <Badge
+                        status={
+                          u.onlineStatus ||
+                          (u.accountStatus === 'deactivated'
+                            ? 'deactivated'
+                            : u.isOnline
+                            ? 'online'
+                            : 'offline')
+                        }
+                        size="sm"
+                      />
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
@@ -269,7 +284,17 @@ const AdminUsersPage = () => {
                 </div>
 
                 <div className="flex items-center justify-between pt-1">
-                  <Badge status={u.accountStatus} size="sm" />
+                  <Badge
+                    status={
+                      u.onlineStatus ||
+                      (u.accountStatus === 'deactivated'
+                        ? 'deactivated'
+                        : u.isOnline
+                        ? 'online'
+                        : 'offline')
+                    }
+                    size="sm"
+                  />
                   <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"

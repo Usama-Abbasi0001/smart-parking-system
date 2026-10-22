@@ -32,6 +32,15 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
+  // Periodic heartbeat every 2 minutes to keep online status fresh
+  useEffect(() => {
+    if (!token) return;
+    const interval = setInterval(() => {
+      api.get('/auth/me').catch(() => {});
+    }, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [token]);
+
   const login = async (identifier, password) => {
     try {
       const res = await api.post('/auth/login', {

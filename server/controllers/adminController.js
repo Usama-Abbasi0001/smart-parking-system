@@ -354,7 +354,24 @@ export const getAdminUsers = async (req, res, next) => {
     } else {
       query.role = 'user';
     }
-    if (status && status !== 'all') query.accountStatus = status;
+    if (status && status !== 'all') {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      if (status === 'online') {
+        query.accountStatus = { $ne: 'deactivated' };
+        query.isOnline = true;
+        query.lastActive = { $gte: fiveMinutesAgo };
+      } else if (status === 'offline') {
+        query.accountStatus = { $ne: 'deactivated' };
+        query.$or = [
+          { isOnline: false },
+          { isOnline: { $exists: false } },
+          { lastActive: { $lt: fiveMinutesAgo } },
+          { lastActive: { $exists: false } },
+        ];
+      } else if (status === 'deactivated' || status === 'active') {
+        query.accountStatus = status;
+      }
+    }
 
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
@@ -365,13 +382,25 @@ export const getAdminUsers = async (req, res, next) => {
       User.countDocuments(query),
     ]);
 
-    // Attach booking counts for each user
+    // Attach booking counts and accurate online status for each user
     const usersWithStats = await Promise.all(
       users.map(async (u) => {
         const bookingCount = await Booking.countDocuments({ userId: u._id });
+        const lastActiveTime = u.lastActive ? new Date(u.lastActive).getTime() : 0;
+        const isOnlineNow = Boolean(u.isOnline && (Date.now() - lastActiveTime <= 5 * 60 * 1000));
+
+        let onlineStatus = 'offline';
+        if (u.accountStatus === 'deactivated') {
+          onlineStatus = 'deactivated';
+        } else if (isOnlineNow) {
+          onlineStatus = 'online';
+        }
+
         return {
           ...u.toJSON(),
           bookingCount,
+          isOnline: isOnlineNow,
+          onlineStatus,
         };
       })
     );
