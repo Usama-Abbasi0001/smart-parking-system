@@ -48,11 +48,22 @@ export const getErrorMessage = (error) => {
   if (error.response?.data?.errors?.[0]?.message) {
     return error.response.data.errors[0].message;
   }
+  if (error.response?.data?.error) {
+    return error.response.data.error;
+  }
+  if (typeof error.response?.data === 'string' && error.response.data.trim()) {
+    if (!error.response.data.includes('<!DOCTYPE') && !error.response.data.includes('<html')) {
+      return error.response.data;
+    }
+  }
   if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
     return 'Database cloud connection took too long. Please refresh the page.';
   }
   if (error.message === 'Network Error') {
     return 'Cannot reach the parking server. Please verify your internet connection.';
+  }
+  if (error.response?.status === 500) {
+    return 'Server or database is reconnecting. Please try again.';
   }
   return error.message || 'An unexpected error occurred. Please try again.';
 };

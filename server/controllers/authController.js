@@ -44,13 +44,17 @@ export const register = async (req, res, next) => {
       accountStatus: 'active',
     });
 
-    // Create a welcoming in-app notification
-    await Notification.create({
-      userId: newUser._id,
-      title: 'Welcome to ParkPulse!',
-      message: `Welcome, ${newUser.name}! Your account is active. You can now search for parking slots and make real-time reservations.`,
-      type: 'system',
-    });
+    // Create a welcoming in-app notification (non-blocking)
+    try {
+      await Notification.create({
+        userId: newUser._id,
+        title: 'Welcome to ParkPulse!',
+        message: `Welcome, ${newUser.name}! Your account is active. You can now search for parking slots and make real-time reservations.`,
+        type: 'system',
+      });
+    } catch (notifErr) {
+      console.warn('Welcome notification warning (non-fatal):', notifErr.message);
+    }
 
     const token = generateToken(newUser._id, newUser.role);
 
