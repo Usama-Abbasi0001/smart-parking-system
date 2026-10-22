@@ -65,6 +65,7 @@ const UserDashboard = () => {
   }
 
   const { counts, recentBookings, nextUpcomingBooking, welcomeMessage, user } = data;
+  const isAdmin = user?.role === 'admin';
 
   return (
     <div className="space-y-6">
@@ -72,14 +73,15 @@ const UserDashboard = () => {
       <div className="bg-gradient-to-r from-navy-900 via-royal-900 to-blue-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10 max-w-2xl">
           <span className="text-xs font-bold uppercase tracking-widest text-blue-300">
-            Smart Driver Console
+            {isAdmin ? 'Administrative Operations Console' : 'Smart Driver Console'}
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-1">
             {welcomeMessage}
           </h1>
           <p className="text-sm text-blue-100 mt-2 leading-relaxed">
-            Your vehicle <span className="font-mono font-bold bg-white/20 px-2 py-0.5 rounded text-white">{user?.vehicleNumber}</span> is registered.
-            Search real-time parking spaces across prime decks and terminals.
+            {isAdmin
+              ? `Live system monitor: ${counts.totalBookings} driver bookings active across commercial parking bays and prime mall decks.`
+              : `Your vehicle ${user?.vehicleNumber} is registered. Search real-time parking spaces across prime decks and terminals.`}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -89,13 +91,23 @@ const UserDashboard = () => {
               <Car className="w-4 h-4" />
               Find & Reserve Slot
             </Link>
-            <Link
-              to="/my-bookings"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white font-semibold text-sm rounded-xl border border-white/20 backdrop-blur transition-colors"
-            >
-              View My Bookings
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            {isAdmin ? (
+              <Link
+                to="/admin/users"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white font-semibold text-sm rounded-xl border border-white/20 backdrop-blur transition-colors"
+              >
+                User Directory
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <Link
+                to="/my-bookings"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white font-semibold text-sm rounded-xl border border-white/20 backdrop-blur transition-colors"
+              >
+                View My Bookings
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -105,7 +117,7 @@ const UserDashboard = () => {
         <StatCard
           title="Total Bookings"
           value={counts.totalBookings}
-          subtitle="All time reservations"
+          subtitle={isAdmin ? "System active reservations" : "All time reservations"}
           icon={CalendarCheck}
           color="blue"
         />
@@ -138,7 +150,7 @@ const UserDashboard = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
             <div>
               <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-                Upcoming Reservation
+                {isAdmin ? 'Next System Reservation' : 'Upcoming Reservation'}
               </span>
               <h3 className="text-lg font-bold text-slate-900 mt-0.5">
                 Slot {nextUpcomingBooking.slotId?.slotNumber} — {nextUpcomingBooking.slotId?.area}
@@ -179,10 +191,10 @@ const UserDashboard = () => {
 
           <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end gap-3">
             <Link
-              to={`/my-bookings`}
+              to={isAdmin ? `/admin/bookings` : `/my-bookings`}
               className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
             >
-              View Booking QR Code & Receipt
+              {isAdmin ? 'View in Admin Bookings' : 'View Booking QR Code & Receipt'}
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -193,11 +205,15 @@ const UserDashboard = () => {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-slate-900">Recent Booking History</h3>
-            <p className="text-xs text-slate-500">Your latest parking reservations</p>
+            <h3 className="text-base font-bold text-slate-900">
+              {isAdmin ? 'Recent System Bookings' : 'Recent Booking History'}
+            </h3>
+            <p className="text-xs text-slate-500">
+              {isAdmin ? 'Live reservations made by registered drivers' : 'Your latest parking reservations'}
+            </p>
           </div>
           <Link
-            to="/my-bookings"
+            to={isAdmin ? '/admin/bookings' : '/my-bookings'}
             className="text-xs font-semibold text-blue-600 hover:text-blue-800"
           >
             View All Bookings
@@ -207,7 +223,7 @@ const UserDashboard = () => {
         {recentBookings.length === 0 ? (
           <EmptyState
             title="No bookings yet"
-            description="You haven't reserved any parking spots yet. Search available slots and reserve in advance."
+            description="No active parking reservations found."
             actionLabel="Find Parking Now"
             onAction={() => (window.location.href = '/find-parking')}
           />
@@ -219,6 +235,7 @@ const UserDashboard = () => {
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
                   <tr>
                     <th className="px-6 py-3.5">Reference</th>
+                    {isAdmin && <th className="px-6 py-3.5">Driver & Vehicle</th>}
                     <th className="px-6 py-3.5">Slot / Area</th>
                     <th className="px-6 py-3.5">Time Interval</th>
                     <th className="px-6 py-3.5">Amount</th>
@@ -232,6 +249,16 @@ const UserDashboard = () => {
                       <td className="px-6 py-4 font-mono font-bold text-slate-900">
                         {b.bookingReference}
                       </td>
+                      {isAdmin && (
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-slate-900 block">
+                            {b.userId?.name || 'Driver'}
+                          </span>
+                          <span className="font-mono text-slate-500 text-[11px]">
+                            {b.vehicleNumber || b.userId?.vehicleNumber}
+                          </span>
+                        </td>
+                      )}
                       <td className="px-6 py-4">
                         <span className="font-semibold text-slate-900">
                           {b.slotId?.slotNumber || 'Slot'}
@@ -264,7 +291,7 @@ const UserDashboard = () => {
                           </Link>
                         ) : (
                           <Link
-                            to="/my-bookings"
+                            to={isAdmin ? '/admin/bookings' : '/my-bookings'}
                             className="text-blue-600 hover:text-blue-800 font-semibold"
                           >
                             Details

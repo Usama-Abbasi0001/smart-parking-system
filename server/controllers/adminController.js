@@ -385,7 +385,10 @@ export const getAdminUsers = async (req, res, next) => {
     // Attach booking counts and accurate online status for each user
     const usersWithStats = await Promise.all(
       users.map(async (u) => {
-        const bookingCount = await Booking.countDocuments({ userId: u._id });
+        const bookingCount = await Booking.countDocuments({
+          userId: u._id,
+          bookingStatus: { $ne: 'cancelled' },
+        });
         const lastActiveTime = u.lastActive ? new Date(u.lastActive).getTime() : 0;
         const isOnlineNow = Boolean(u.isOnline && (Date.now() - lastActiveTime <= 5 * 60 * 1000));
 
@@ -431,7 +434,10 @@ export const getAdminUserById = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    const bookings = await Booking.find({ userId: user._id })
+    const bookings = await Booking.find({
+      userId: user._id,
+      bookingStatus: { $ne: 'cancelled' },
+    })
       .populate('slotId', 'slotNumber area floorOrZone')
       .sort({ createdAt: -1 });
 

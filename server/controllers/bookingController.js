@@ -135,6 +135,8 @@ export const getMyBookings = async (req, res, next) => {
       } else {
         query.bookingStatus = status;
       }
+    } else {
+      query.bookingStatus = { $ne: 'cancelled' };
     }
 
     if (search) {
@@ -256,47 +258,31 @@ export const cancelBooking = async (req, res, next) => {
     }
 
     const wasPaid = booking.paymentStatus === 'paid';
+    const slotNumber = booking.slotId?.slotNumber || 'N/A';
+    const bookingRef = booking.bookingReference;
+    const userId = booking.userId;
 
-    booking.bookingStatus = 'cancelled';
-    booking.cancelledAt = new Date();
-    booking.cancellationReason =
-      cancellationReason || (isAdmin ? 'Cancelled by Administrator' : 'Cancelled by User');
-
-    if (wasPaid) {
-      booking.paymentStatus = 'refunded';
-      // Record simulated refund payment entry
-      await Payment.create({
-        bookingId: booking._id,
-        userId: booking.userId,
-        amount: booking.amount,
-        method: 'simulated_instant',
-        transactionReference: generateTransactionRef(),
-        status: 'refunded',
-        simulated: true,
-        failureReason: 'Simulated full refund on booking cancellation',
-      });
-    }
-
-    await booking.save();
+    // Delete the booking record so it is permanently removed from the table and counts
+    await Booking.findByIdAndDelete(id);
+    await Payment.deleteMany({ bookingId: id });
 
     // Create cancellation notification
     await Notification.create({
-      userId: booking.userId,
+      userId,
       title: 'Booking Cancelled',
-      message: `Your booking (${booking.bookingReference}) for slot ${booking.slotId?.slotNumber || 'N/A'} was cancelled.${
+      message: `Your booking (${bookingRef}) for slot ${slotNumber} was cancelled and removed.${
         wasPaid ? ' A simulated refund has been credited.' : ''
       }`,
       type: 'cancellation',
-      bookingId: booking._id,
     });
 
     res.status(200).json({
       success: true,
       message: wasPaid
-        ? 'Booking cancelled successfully. Simulated refund processed.'
-        : 'Booking cancelled successfully.',
+        ? 'Booking cancelled and removed successfully. Simulated refund processed.'
+        : 'Booking cancelled and removed successfully.',
       data: {
-        booking,
+        bookingId: id,
       },
     });
   } catch (error) {
