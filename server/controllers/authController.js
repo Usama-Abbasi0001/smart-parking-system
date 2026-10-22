@@ -96,7 +96,15 @@ export const login = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid vehicle number/email or password.',
+        message: 'Invalid vehicle plate number / email or password.',
+      });
+    }
+
+    // Clients must login using their car plate number only; only Admin can login with email
+    if (rawIdentifier.includes('@') && user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Clients must log in using their Car Number Plate.',
       });
     }
 
@@ -111,7 +119,7 @@ export const login = async (req, res, next) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid vehicle number/email or password.',
+        message: 'Invalid vehicle plate number / email or password.',
       });
     }
 

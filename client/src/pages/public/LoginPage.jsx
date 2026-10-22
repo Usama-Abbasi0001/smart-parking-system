@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Car, Lock, Mail, Eye, EyeOff, ShieldCheck, UserCheck } from 'lucide-react';
+import { Car, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const LoginPage = () => {
@@ -27,11 +27,6 @@ const LoginPage = () => {
     }
   };
 
-  const handleQuickFill = (demoIdentifier, demoPassword) => {
-    setIdentifier(demoIdentifier);
-    setPassword(demoPassword);
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
@@ -47,7 +42,7 @@ const LoginPage = () => {
           Welcome back
         </h2>
         <p className="mt-1 text-sm text-slate-500">
-          Sign in using your Car Number Plate or Email
+          Sign in to your account
         </p>
       </div>
 
@@ -56,7 +51,7 @@ const LoginPage = () => {
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                Car Plate Number or Email
+                Car Plate Number / Admin Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -67,13 +62,10 @@ const LoginPage = () => {
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="e.g. KHI-7860 or usama@example.com"
+                  placeholder="e.g. BMW007 or admin email"
                   className="w-full pl-10 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all outline-none"
                 />
               </div>
-              <p className="mt-1.5 text-[11px] text-slate-400">
-                Client / Driver apni <strong>Car ki Number Plate</strong> ya Email se login kar sakte hain.
-              </p>
             </div>
 
             <div>
@@ -112,31 +104,6 @@ const LoginPage = () => {
               {submitting ? 'Authenticating...' : 'Sign In'}
             </button>
           </form>
-
-          {/* Quick Demo Credentials Fill Buttons */}
-          <div className="mt-6 pt-6 border-t border-slate-100">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest text-center mb-3">
-              ⚡ 1-Click Quick Demo Login
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('usamakhan58461@gmail.com', '2k22-cs-44')}
-                className="group flex items-center justify-center gap-2 px-3.5 py-2.5 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 hover:shadow-md border border-purple-200 rounded-xl transition-all active:scale-95 cursor-pointer"
-              >
-                <ShieldCheck className="w-4 h-4 text-purple-600 group-hover:scale-110 transition-transform" />
-                <span>Admin (Usama)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('KHI-7860', 'Client1234!')}
-                className="group flex items-center justify-center gap-2 px-3.5 py-2.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 hover:shadow-md border border-blue-200 rounded-xl transition-all active:scale-95 cursor-pointer"
-              >
-                <UserCheck className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
-                <span>Client (Plate: KHI-7860)</span>
-              </button>
-            </div>
-          </div>
 
           <div className="mt-6 text-center text-xs text-slate-500">
             Don't have an account?{' '}
