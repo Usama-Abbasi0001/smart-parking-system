@@ -12,6 +12,7 @@ import {
   Eye,
   Shield,
   Clock,
+  MoreVertical,
 } from 'lucide-react';
 import Badge from '../../components/common/Badge';
 import Modal from '../../components/common/Modal';
@@ -27,11 +28,19 @@ const AdminUsersPage = () => {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('user');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [openMenuUserId, setOpenMenuUserId] = useState(null);
 
   // User details modal
   const [selectedUser, setSelectedUser] = useState(null);
   const [userBookings, setUserBookings] = useState([]);
   const [modalLoading, setModalLoading] = useState(false);
+
+  // Close three dots dropdown when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = () => setOpenMenuUserId(null);
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, []);
 
   const fetchUsers = async (page = 1) => {
     try {
@@ -144,9 +153,9 @@ const AdminUsersPage = () => {
           description="Try modifying your search query or role/status filters."
         />
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm min-h-[300px]">
           {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto min-h-[260px] pb-24">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
                 <tr>
@@ -177,24 +186,62 @@ const AdminUsersPage = () => {
                       <Badge status={u.accountStatus} size="sm" />
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
                         <button
-                          onClick={() => handleViewUser(u._id)}
-                          className="px-2.5 py-1 text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                          type="button"
+                          onClick={() => setOpenMenuUserId(openMenuUserId === u._id ? null : u._id)}
+                          className={`p-1.5 rounded-xl transition-all cursor-pointer ${
+                            openMenuUserId === u._id
+                              ? 'bg-slate-200 text-slate-900 shadow-xs ring-2 ring-slate-300'
+                              : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+                          }`}
+                          title="Actions Menu"
+                          aria-label="Actions Menu"
                         >
-                          View History
+                          <MoreVertical className="w-4 h-4" />
                         </button>
-                        {u.role !== 'admin' && (
-                          <button
-                            onClick={() => handleToggleStatus(u)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                              u.accountStatus === 'active'
-                                ? 'text-rose-600 hover:bg-rose-50'
-                                : 'text-emerald-600 hover:bg-emerald-50'
-                            }`}
-                          >
-                            {u.accountStatus === 'active' ? 'Deactivate' : 'Activate'}
-                          </button>
+
+                        {openMenuUserId === u._id && (
+                          <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 animate-scale-in text-left">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpenMenuUserId(null);
+                                handleViewUser(u._id);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-blue-600" />
+                              <span>View History</span>
+                            </button>
+
+                            {u.role !== 'admin' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenMenuUserId(null);
+                                  handleToggleStatus(u);
+                                }}
+                                className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer text-left border-t border-slate-100 ${
+                                  u.accountStatus === 'active'
+                                    ? 'text-rose-600 hover:bg-rose-50'
+                                    : 'text-emerald-600 hover:bg-emerald-50'
+                                }`}
+                              >
+                                {u.accountStatus === 'active' ? (
+                                  <>
+                                    <UserX className="w-3.5 h-3.5 text-rose-500" />
+                                    <span>Deactivate</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="w-3.5 h-3.5 text-emerald-500" />
+                                    <span>Activate</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </td>
@@ -223,24 +270,60 @@ const AdminUsersPage = () => {
 
                 <div className="flex items-center justify-between pt-1">
                   <Badge status={u.accountStatus} size="sm" />
-                  <div className="flex items-center gap-2">
+                  <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
                     <button
-                      onClick={() => handleViewUser(u._id)}
-                      className="px-2.5 py-1.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg active:scale-95"
+                      type="button"
+                      onClick={() => setOpenMenuUserId(openMenuUserId === u._id ? null : u._id)}
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                        openMenuUserId === u._id
+                          ? 'bg-slate-200 text-slate-900'
+                          : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+                      }`}
+                      aria-label="Actions Menu"
                     >
-                      History
+                      <MoreVertical className="w-4 h-4" />
                     </button>
-                    {u.role !== 'admin' && (
-                      <button
-                        onClick={() => handleToggleStatus(u)}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold active:scale-95 ${
-                          u.accountStatus === 'active'
-                            ? 'bg-rose-50 text-rose-700'
-                            : 'bg-emerald-50 text-emerald-700'
-                        }`}
-                      >
-                        {u.accountStatus === 'active' ? 'Deactivate' : 'Activate'}
-                      </button>
+
+                    {openMenuUserId === u._id && (
+                      <div className="absolute right-0 bottom-full mb-1 sm:bottom-auto sm:top-full sm:mt-1 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-scale-in text-left">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenMenuUserId(null);
+                            handleViewUser(u._id);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 text-left cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-blue-600" />
+                          <span>View History</span>
+                        </button>
+                        {u.role !== 'admin' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenMenuUserId(null);
+                              handleToggleStatus(u);
+                            }}
+                            className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-left cursor-pointer border-t border-slate-100 ${
+                              u.accountStatus === 'active'
+                                ? 'text-rose-600 hover:bg-rose-50'
+                                : 'text-emerald-600 hover:bg-emerald-50'
+                            }`}
+                          >
+                            {u.accountStatus === 'active' ? (
+                              <>
+                                <UserX className="w-3.5 h-3.5 text-rose-500" />
+                                <span>Deactivate</span>
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck className="w-3.5 h-3.5 text-emerald-500" />
+                                <span>Activate</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
