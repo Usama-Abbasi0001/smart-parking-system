@@ -116,7 +116,7 @@ const LoginPage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button
                 type="button"
-                onClick={() => handleQuickFill('admin@smartpark.com', 'Admin1234!')}
+                onClick={() => handleQuickFill('usamakhan58461@gmail.com', '2k22-cs-44')}
                 className="group flex items-center justify-center gap-2 px-3.5 py-2.5 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 hover:shadow-md border border-purple-200 rounded-xl transition-all active:scale-95 cursor-pointer"
               >
                 <ShieldCheck className="w-4 h-4 text-purple-600 group-hover:scale-110 transition-transform" />

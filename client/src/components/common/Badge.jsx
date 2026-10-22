@@ -33,6 +33,15 @@ const Badge = ({ status, text, size = 'md' }) => {
   } else if (['vip'].includes(norm)) {
     styles = 'bg-amber-50 text-amber-800 border-amber-300 font-semibold';
     dotColor = 'bg-amber-600';
+  } else if (['car'].includes(norm)) {
+    styles = 'bg-blue-50 text-blue-800 border-blue-200 font-semibold';
+    dotColor = 'bg-blue-600';
+  } else if (['bike'].includes(norm)) {
+    styles = 'bg-cyan-50 text-cyan-800 border-cyan-200 font-semibold';
+    dotColor = 'bg-cyan-600';
+  } else if (['cycle'].includes(norm)) {
+    styles = 'bg-emerald-50 text-emerald-800 border-emerald-200 font-semibold';
+    dotColor = 'bg-emerald-600';
   }
 
   const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs font-medium';

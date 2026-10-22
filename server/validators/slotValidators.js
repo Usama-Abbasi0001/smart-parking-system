@@ -22,7 +22,7 @@ export const validateSlotCreate = [
     .withMessage('Hourly rate must be a non-negative number'),
   body('slotType')
     .optional()
-    .isIn(['standard', 'accessible', 'ev_charging', 'compact', 'vip'])
+    .isIn(['car', 'bike', 'cycle', 'standard', 'accessible', 'ev_charging', 'compact', 'vip'])
     .withMessage('Invalid slot type'),
   body('description')
     .optional()
@@ -47,7 +47,7 @@ export const validateSlotUpdate = [
     .withMessage('Hourly rate must be a non-negative number'),
   body('slotType')
     .optional()
-    .isIn(['standard', 'accessible', 'ev_charging', 'compact', 'vip'])
+    .isIn(['car', 'bike', 'cycle', 'standard', 'accessible', 'ev_charging', 'compact', 'vip'])
     .withMessage('Invalid slot type'),
   body('active')
     .optional()

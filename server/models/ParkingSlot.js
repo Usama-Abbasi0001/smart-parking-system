@@ -26,8 +26,8 @@ const parkingSlotSchema = new mongoose.Schema(
     },
     slotType: {
       type: String,
-      enum: ['standard', 'accessible', 'ev_charging', 'compact', 'vip'],
-      default: 'standard',
+      enum: ['car', 'bike', 'cycle', 'standard', 'accessible', 'ev_charging', 'compact', 'vip'],
+      default: 'car',
     },
     active: {
       type: Boolean,

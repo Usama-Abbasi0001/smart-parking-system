@@ -336,11 +336,13 @@ const FindParkingPage = () => {
               onChange={(e) => setSlotType(e.target.value)}
               className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none capitalize"
             >
-              <option value="all">All Slot Types</option>
+              <option value="all">All Vehicle Types</option>
+              <option value="car">🚗 Car (PKR 5,000 / 2 hrs)</option>
+              <option value="bike">🏍️ Bike (PKR 2,500 / 2 hrs)</option>
+              <option value="cycle">🚲 Cycle (PKR 1,000 / 2 hrs)</option>
               <option value="standard">Standard</option>
               <option value="accessible">Accessible / Disability</option>
               <option value="ev_charging">EV Charging Hub</option>
-              <option value="compact">Compact</option>
               <option value="vip">VIP Executive</option>
             </select>
           </div>

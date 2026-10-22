@@ -24,9 +24,9 @@ export const seedDatabase = async (shouldDisconnect = true) => {
     ]);
 
     // 1. Create First Admin
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@smartpark.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin1234!';
-    const adminName = process.env.ADMIN_NAME || 'System Administrator';
+    const adminEmail = process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || '2k22-cs-44';
+    const adminName = process.env.ADMIN_NAME || 'Usama Khan';
     const adminVehicle = process.env.ADMIN_VEHICLE || 'ADMIN-001';
 
     const adminHash = await User.hashPassword(adminPassword);
@@ -52,37 +52,59 @@ export const seedDatabase = async (shouldDisconnect = true) => {
     });
     console.log(`✅ Demo Client Created: ${demoClient.email} (Password: Client1234!)`);
 
-    // 3. Create Diverse Parking Slots (PKR Hourly Rates)
-    const slotsData = [
-      // Central Plaza Deck (Floor 1 & Floor 2)
-      { slotNumber: 'CP-101', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 150, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Near main pedestrian exit' },
-      { slotNumber: 'CP-102', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 150, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Wide standard slot' },
-      { slotNumber: 'CP-103', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 100, slotType: 'accessible', active: true, maintenanceStatus: false, description: 'Wide bay near elevator' },
-      { slotNumber: 'CP-104', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 200, slotType: 'ev_charging', active: true, maintenanceStatus: false, description: 'Level 2 EV fast charger' },
-      { slotNumber: 'CP-105', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 250, slotType: 'vip', active: true, maintenanceStatus: false, description: 'Reserved premium executive spot' },
-      { slotNumber: 'CP-201', area: 'Central Plaza Deck', floorOrZone: 'Floor 2', hourlyRate: 120, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Upper covered deck' },
-      { slotNumber: 'CP-202', area: 'Central Plaza Deck', floorOrZone: 'Floor 2', hourlyRate: 120, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Upper covered deck' },
-      { slotNumber: 'CP-203', area: 'Central Plaza Deck', floorOrZone: 'Floor 2', hourlyRate: 90, slotType: 'compact', active: true, maintenanceStatus: false, description: 'Compact cars only' },
-      { slotNumber: 'CP-204', area: 'Central Plaza Deck', floorOrZone: 'Floor 2', hourlyRate: 120, slotType: 'standard', active: true, maintenanceStatus: true, description: 'Sensor maintenance in progress' },
+    // 3. Create Exactly 30 Parking Slots:
+    // 15 Cars @ 2500 PKR/hr (5,000 PKR for 2 hours)
+    // 10 Bikes @ 1250 PKR/hr (2,500 PKR for 2 hours)
+    // 5 Cycles @ 500 PKR/hr (1,000 PKR for 2 hours)
+    const slotsData = [];
 
-      // Terminal 1 Airport Express (Zone A & Zone B)
-      { slotNumber: 'T1-A01', area: 'Terminal 1 Express', floorOrZone: 'Zone A', hourlyRate: 250, slotType: 'vip', active: true, maintenanceStatus: false, description: 'Direct walking link to Terminal 1 check-in' },
-      { slotNumber: 'T1-A02', area: 'Terminal 1 Express', floorOrZone: 'Zone A', hourlyRate: 200, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Terminal 1 Departures' },
-      { slotNumber: 'T1-A03', area: 'Terminal 1 Express', floorOrZone: 'Zone A', hourlyRate: 250, slotType: 'ev_charging', active: true, maintenanceStatus: false, description: 'Rapid 50kW EV charging hub' },
-      { slotNumber: 'T1-A04', area: 'Terminal 1 Express', floorOrZone: 'Zone A', hourlyRate: 150, slotType: 'accessible', active: true, maintenanceStatus: false, description: 'Wheelchair access ramp' },
-      { slotNumber: 'T1-B01', area: 'Terminal 1 Express', floorOrZone: 'Zone B', hourlyRate: 180, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Long-term economy zone' },
-      { slotNumber: 'T1-B02', area: 'Terminal 1 Express', floorOrZone: 'Zone B', hourlyRate: 180, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Long-term economy zone' },
+    // 15 Car Slots (5k for 2 hours)
+    for (let i = 1; i <= 15; i++) {
+      const num = String(i).padStart(2, '0');
+      slotsData.push({
+        slotNumber: `CAR-${num}`,
+        area: 'Central Plaza - Car Deck',
+        floorOrZone: i <= 8 ? 'Floor 1' : 'Floor 2',
+        hourlyRate: 2500,
+        slotType: 'car',
+        active: true,
+        maintenanceStatus: false,
+        description: 'Spacious car bay with automatic sensor (PKR 5,000 for 2 hrs)',
+      });
+    }
 
-      // Metro Station Basement B1
-      { slotNumber: 'MS-B01', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 90, slotType: 'compact', active: true, maintenanceStatus: false, description: 'Commuter park & ride' },
-      { slotNumber: 'MS-B02', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 100, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Commuter park & ride' },
-      { slotNumber: 'MS-B03', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 100, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Near subway turnstiles' },
-      { slotNumber: 'MS-B04', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 150, slotType: 'ev_charging', active: true, maintenanceStatus: false, description: 'Subway commuter EV slot' },
-      { slotNumber: 'MS-B05', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 80, slotType: 'standard', active: false, maintenanceStatus: false, description: 'Temporarily deactivated zone' },
-    ];
+    // 10 Bike Slots (2.5k for 2 hours)
+    for (let i = 1; i <= 10; i++) {
+      const num = String(i).padStart(2, '0');
+      slotsData.push({
+        slotNumber: `BIKE-${num}`,
+        area: 'Metro Station - Bike Zone',
+        floorOrZone: 'Ground Bay',
+        hourlyRate: 1250,
+        slotType: 'bike',
+        active: true,
+        maintenanceStatus: false,
+        description: 'Motorcycle bay with ground chain lock and CCTV (PKR 2,500 for 2 hrs)',
+      });
+    }
+
+    // 5 Cycle Slots (1k for 2 hours)
+    for (let i = 1; i <= 5; i++) {
+      const num = String(i).padStart(2, '0');
+      slotsData.push({
+        slotNumber: `CYCLE-${num}`,
+        area: 'Eco Hub - Cycle Stands',
+        floorOrZone: 'Sheltered Stand',
+        hourlyRate: 500,
+        slotType: 'cycle',
+        active: true,
+        maintenanceStatus: false,
+        description: 'Sheltered bicycle stand with frame lock mount (PKR 1,000 for 2 hrs)',
+      });
+    }
 
     const slots = await ParkingSlot.insertMany(slotsData);
-    console.log(`✅ ${slots.length} Parking Slots Created across 3 Areas`);
+    console.log(`✅ Exactly ${slots.length} Parking Slots Created (15 Cars, 10 Bikes, 5 Cycles)`);
 
     // 4. Create realistic demo bookings and payments
     const now = new Date();

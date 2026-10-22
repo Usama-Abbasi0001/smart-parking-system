@@ -431,10 +431,12 @@ const AdminSlotsPage = () => {
                 onChange={(e) => setFormData({ ...formData, slotType: e.target.value })}
                 className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none"
               >
+                <option value="car">Car (PKR 5,000 / 2 hrs)</option>
+                <option value="bike">Bike (PKR 2,500 / 2 hrs)</option>
+                <option value="cycle">Cycle (PKR 1,000 / 2 hrs)</option>
                 <option value="standard">Standard</option>
                 <option value="accessible">Accessible / Disabled</option>
                 <option value="ev_charging">EV Fast Charging</option>
-                <option value="compact">Compact Cars</option>
                 <option value="vip">VIP Executive</option>
               </select>
             </div>
