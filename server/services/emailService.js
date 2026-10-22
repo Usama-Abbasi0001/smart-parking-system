@@ -1,4 +1,8 @@
 import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+
+// Ensure latest .env variables are loaded
+dotenv.config();
 
 /**
  * Creates and caches a Nodemailer transport instance
@@ -6,7 +10,8 @@ import nodemailer from 'nodemailer';
 let cachedTransporter = null;
 
 const getTransporter = async () => {
-  if (cachedTransporter) return cachedTransporter;
+  // Always refresh .env in case credentials were added while server was running
+  dotenv.config();
 
   const host = process.env.SMTP_HOST || 'smtp.gmail.com';
   const port = parseInt(process.env.SMTP_PORT || '465', 10);
@@ -15,6 +20,10 @@ const getTransporter = async () => {
   const pass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || '').replace(/\s+/g, '');
 
   if (user && pass) {
+    if (cachedTransporter && cachedTransporter._isReal) {
+      return cachedTransporter;
+    }
+
     const isGmail = host.includes('gmail') || user.includes('gmail');
     cachedTransporter = nodemailer.createTransport(
       isGmail
@@ -31,17 +40,17 @@ const getTransporter = async () => {
             tls: { rejectUnauthorized: false },
           }
     );
+    cachedTransporter._isReal = true;
     return cachedTransporter;
   }
 
-  // Fallback: If no real credentials, log clearly and use jsonTransport/test transport
+  // Fallback: If no real credentials, log clearly and use jsonTransport
   console.warn(
     '[EmailService] ⚠️ Notice: Real Gmail delivery requires a 16-digit Google App Password in server/.env (SMTP_PASS=xxxx). An email was simulated locally.'
   );
-  cachedTransporter = nodemailer.createTransport({
+  return nodemailer.createTransport({
     jsonTransport: true,
   });
-  return cachedTransporter;
 };
 
 /**
@@ -59,6 +68,130 @@ const formatDateTime = (date) => {
     minute: '2-digit',
     hour12: true,
   });
+};
+
+/**
+ * Send Welcome Email when a new user registers an account
+ */
+export const sendWelcomeEmail = async ({ user }) => {
+  try {
+    if (!user || !user.email) {
+      console.warn('[EmailService] Cannot send welcome email: Missing user email.');
+      return { success: false, reason: 'missing_email' };
+    }
+
+    const transporter = await getTransporter();
+    const cleanEmail = user.email.toLowerCase().trim();
+    const vehiclePlate = (user.vehicleNumber || 'N/A').toUpperCase();
+
+    const subject = `Welcome to ParkPulse Smart Parking, ${user.name}!`;
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to ParkPulse</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #334155;">
+  <div style="max-width: 600px; margin: 30px auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;">
+    
+    <!-- Top Header Banner -->
+    <div style="background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); padding: 36px 32px; text-align: center; color: #ffffff;">
+      <div style="display: inline-block; background: rgba(255, 255, 255, 0.2); padding: 8px 16px; border-radius: 999px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
+        ✓ Account Successfully Activated
+      </div>
+      <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">
+        Welcome to Park<span style="color: #93c5fd;">Pulse</span>!
+      </h1>
+      <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.9;">
+        Smart Parking Reservation & Digital Bay Management System
+      </p>
+    </div>
+
+    <!-- Main Content -->
+    <div style="padding: 32px 28px;">
+      
+      <p style="font-size: 15px; line-height: 1.6; margin: 0 0 20px 0; color: #1e293b;">
+        Hello <strong>${user.name}</strong>,<br>
+        ParkPulse me khush aamdeed! Aapka driver account kamyabi ke sath create aur activate ho chuka hai. Aap ab real-time parking bays search aur reserve kar sakte hain.
+      </p>
+
+      <!-- Account Overview Card -->
+      <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; padding: 20px; margin-bottom: 24px;">
+        <span style="font-size: 11px; font-weight: 700; color: #1d4ed8; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">
+          Driver Profile Details
+        </span>
+        <table style="width: 100%; font-size: 13px; line-height: 1.8;">
+          <tr>
+            <td style="color: #64748b; width: 45%;"><strong>Driver Name:</strong></td>
+            <td style="color: #0f172a; font-weight: 700;">${user.name}</td>
+          </tr>
+          <tr>
+            <td style="color: #64748b;"><strong>Registered Email:</strong></td>
+            <td style="color: #0f172a;">${cleanEmail}</td>
+          </tr>
+          <tr>
+            <td style="color: #64748b;"><strong>Car Number Plate:</strong></td>
+            <td style="color: #2563eb; font-family: monospace; font-weight: 800; font-size: 15px;">🚗 ${vehiclePlate}</td>
+          </tr>
+          <tr>
+            <td style="color: #64748b;"><strong>Account Status:</strong></td>
+            <td style="color: #16a34a; font-weight: 700;">🟢 Active (Verified)</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Features Section -->
+      <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+        <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; color: #0f172a;">
+          🌟 ParkPulse Features:
+        </h3>
+        <ul style="margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: #475569;">
+          <li><strong>Real-Time Slot Availability:</strong> Boulevard Mall, Abdullah Mall, Chase Value, aur Mehran Walk me live parking slots dekhein.</li>
+          <li><strong>Easy Login:</strong> Aap apni <strong>Email Address</strong> ya <strong>Car Plate Number (${vehiclePlate})</strong> se login kar sakte hain.</li>
+          <li><strong>Instant QR & Email Receipt:</strong> Har booking per QR gate pass aur automated confirmation email hasil karein.</li>
+        </ul>
+      </div>
+
+      <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0; text-align: center;">
+        Kisi bhi madad ya support ke liye hamari team se rabta karein:<br>
+        <strong>Email:</strong> ${process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com'}
+      </p>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px; text-align: center; font-size: 11px; color: #94a3b8;">
+      © ${new Date().getFullYear()} ParkPulse Smart Parking System. Automated FYP Notification.<br>
+      This welcome email was sent to ${cleanEmail}.
+    </div>
+
+  </div>
+</body>
+</html>
+    `;
+
+    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com').trim();
+    const fromAddress = `"ParkPulse Smart Parking" <${userEmail}>`;
+
+    const mailOptions = {
+      from: fromAddress,
+      to: cleanEmail,
+      replyTo: userEmail,
+      subject,
+      html: htmlContent,
+      text: `Welcome to ParkPulse, ${user.name}!\nYour driver account is active.\nRegistered Vehicle: ${vehiclePlate}\nLogin with your email or vehicle plate.\n\nThank you for choosing ParkPulse!`,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[EmailService] Welcome email dispatched to ${cleanEmail} (MessageId: ${info.messageId || 'local'})`);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('[EmailService] Failed to send welcome email (non-fatal):', error.message);
+    return { success: false, error: error.message };
+  }
 };
 
 /**
@@ -203,12 +336,13 @@ export const sendBookingConfirmationEmail = async ({ user, booking, slot, paymen
 </html>
     `;
 
-    const fromAddress = process.env.EMAIL_FROM || `"ParkPulse Smart Parking" <${process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'noreply@parkpulse.pk'}>`;
+    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com').trim();
+    const fromAddress = `"ParkPulse Smart Parking" <${userEmail}>`;
 
     const mailOptions = {
       from: fromAddress,
       to: user.email,
-      replyTo: process.env.SMTP_USER || 'usamakhan58461@gmail.com',
+      replyTo: userEmail,
       subject,
       html: htmlContent,
       text: `Parking Confirmed!\nBooking Reference: ${booking.bookingReference}\nVehicle Plate: ${vehiclePlate}\nSlot: ${slotNum} (${areaName})\nTime: ${formattedStart} to ${formattedEnd}\nAmount: ${formattedAmount}\nStatus: Confirmed & Paid`,

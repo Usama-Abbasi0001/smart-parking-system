@@ -3,6 +3,9 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+
+// Load environment variables (ParkPulse v1.0.1)
+dotenv.config();
 import rateLimit from 'express-rate-limit';
 
 import { connectDB, disconnectDB } from './config/db.js';

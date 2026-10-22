@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
+import { sendWelcomeEmail } from '../services/emailService.js';
 
 const generateToken = (userId, role) => {
   const secret = process.env.JWT_SECRET || 'dev_jwt_secret_smart_parking_fyp_key_2026_secure';
@@ -55,6 +56,11 @@ export const register = async (req, res, next) => {
     } catch (notifErr) {
       console.warn('Welcome notification warning (non-fatal):', notifErr.message);
     }
+
+    // Dispatch automated welcome email to driver's inbox (non-blocking)
+    sendWelcomeEmail({ user: newUser }).catch((emailErr) => {
+      console.warn('[AuthController] Welcome email warning:', emailErr.message);
+    });
 
     const token = generateToken(newUser._id, newUser.role);
 
