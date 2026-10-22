@@ -348,7 +348,12 @@ export const getAdminUsers = async (req, res, next) => {
         { vehicleNumber: { $regex: search, $options: 'i' } },
       ];
     }
-    if (role && role !== 'all') query.role = role;
+    // By default in Customer Directory, show regular users/drivers only
+    if (role && role !== 'all') {
+      query.role = role;
+    } else {
+      query.role = 'user';
+    }
     if (status && status !== 'all') query.accountStatus = status;
 
     const pageNum = parseInt(page, 10);

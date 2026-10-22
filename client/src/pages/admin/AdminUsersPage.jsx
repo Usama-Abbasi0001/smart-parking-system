@@ -25,7 +25,7 @@ const AdminUsersPage = () => {
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('user');
   const [statusFilter, setStatusFilter] = useState('all');
 
   // User details modal
@@ -118,9 +118,9 @@ const AdminUsersPage = () => {
             onChange={(e) => setRoleFilter(e.target.value)}
             className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none"
           >
-            <option value="all">All Roles</option>
-            <option value="user">Driver / Customer</option>
-            <option value="admin">Administrator</option>
+            <option value="user">Registered Drivers (Users)</option>
+            <option value="admin">Administrators</option>
+            <option value="all">All Accounts</option>
           </select>
 
           <select
