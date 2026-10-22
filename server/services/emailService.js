@@ -84,7 +84,7 @@ export const sendBookingConfirmationEmail = async ({ user, booking, slot, paymen
     const durationHours = (booking.durationMinutes / 60).toFixed(1).replace('.0', '');
     const txnRef = payment?.transactionReference || `TXN-${booking.bookingReference}`;
 
-    const subject = `🚗 Parking Confirmed: ${slotNum} at ${areaName} (Ref: ${booking.bookingReference})`;
+    const subject = `ParkPulse: Parking Booking Confirmed - Slot ${slotNum} (${areaName})`;
 
     const htmlContent = `
 <!DOCTYPE html>
@@ -208,6 +208,7 @@ export const sendBookingConfirmationEmail = async ({ user, booking, slot, paymen
     const mailOptions = {
       from: fromAddress,
       to: user.email,
+      replyTo: process.env.SMTP_USER || 'usamakhan58461@gmail.com',
       subject,
       html: htmlContent,
       text: `Parking Confirmed!\nBooking Reference: ${booking.bookingReference}\nVehicle Plate: ${vehiclePlate}\nSlot: ${slotNum} (${areaName})\nTime: ${formattedStart} to ${formattedEnd}\nAmount: ${formattedAmount}\nStatus: Confirmed & Paid`,
