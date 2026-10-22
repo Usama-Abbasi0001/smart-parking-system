@@ -140,14 +140,14 @@ const AdminDashboard = () => {
         />
         <StatCard
           title="Today's Simulated Revenue"
-          value={`$${summary.todaySimulatedRevenue.toFixed(2)}`}
+          value={`PKR ${summary.todaySimulatedRevenue.toFixed(2)}`}
           subtitle="Demo earnings"
           icon={DollarSign}
           color="emerald"
         />
         <StatCard
           title="Total Demo Revenue"
-          value={`$${summary.totalSimulatedRevenue.toFixed(2)}`}
+          value={`PKR ${summary.totalSimulatedRevenue.toFixed(2)}`}
           subtitle="Cumulative paid simulation"
           icon={TrendingUp}
           color="blue"
@@ -292,7 +292,7 @@ const AdminDashboard = () => {
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="font-bold text-slate-900 block">${b.amount?.toFixed(2)}</span>
+                  <span className="font-bold text-slate-900 block">PKR {b.amount?.toFixed(2)}</span>
                   <Badge status={b.bookingStatus} size="sm" />
                 </div>
               </div>
@@ -325,7 +325,7 @@ const AdminDashboard = () => {
                 </div>
                 <div className="text-right">
                   <span className="font-bold text-emerald-600 block">
-                    ${p.amount?.toFixed(2)}
+                    PKR {p.amount?.toFixed(2)}
                   </span>
                   <Badge status={p.status} size="sm" />
                 </div>

@@ -304,7 +304,7 @@ const AdminUsersPage = () => {
                         </span>
                       </div>
                       <div className="text-right space-y-1">
-                        <span className="font-bold text-slate-900 block">${b.amount?.toFixed(2)}</span>
+                        <span className="font-bold text-slate-900 block">PKR {b.amount?.toFixed(2)}</span>
                         <Badge status={b.bookingStatus} size="sm" />
                       </div>
                     </div>

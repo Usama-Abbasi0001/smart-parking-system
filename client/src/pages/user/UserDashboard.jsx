@@ -172,7 +172,7 @@ const UserDashboard = () => {
             <div>
               <span className="text-slate-400 block">Amount</span>
               <span className="font-bold text-slate-900 text-sm">
-                ${nextUpcomingBooking.amount?.toFixed(2)}
+                PKR {nextUpcomingBooking.amount?.toFixed(2)}
               </span>
             </div>
           </div>
@@ -248,7 +248,7 @@ const UserDashboard = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 font-semibold text-slate-900">
-                        ${b.amount?.toFixed(2)}
+                        PKR {b.amount?.toFixed(2)}
                       </td>
                       <td className="px-6 py-4 space-x-1">
                         <Badge status={b.bookingStatus} size="sm" />
@@ -291,7 +291,7 @@ const UserDashboard = () => {
                       </span>
                     </div>
                     <span className="font-black text-slate-900 text-sm">
-                      ${b.amount?.toFixed(2)}
+                      PKR {b.amount?.toFixed(2)}
                     </span>
                   </div>
 

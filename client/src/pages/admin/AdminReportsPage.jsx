@@ -125,8 +125,8 @@ const AdminReportsPage = () => {
         />
         <StatCard
           title="Simulated Revenue"
-          value={`$${report.revenueSummary.totalSimulatedRevenue?.toFixed(2) || '0.00'}`}
-          subtitle={`Avg $${report.revenueSummary.avgTransaction?.toFixed(2) || '0.00'} / booking`}
+          value={`PKR ${report.revenueSummary.totalSimulatedRevenue?.toFixed(2) || '0.00'}`}
+          subtitle={`Avg PKR ${report.revenueSummary.avgTransaction?.toFixed(2) || '0.00'} / booking`}
           icon={DollarSign}
           color="purple"
         />

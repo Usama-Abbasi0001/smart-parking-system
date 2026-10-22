@@ -40,63 +40,45 @@ export const seedDatabase = async (shouldDisconnect = true) => {
     });
     console.log(`✅ Admin Account Created: ${admin.email} (Password: ${adminPassword})`);
 
-    // 2. Create Demo Normal Users
-    const userPasswordHash = await User.hashPassword('User1234!');
-    const demoUsers = await User.insertMany([
-      {
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        passwordHash: userPasswordHash,
-        role: 'user',
-        vehicleNumber: 'ABC-1234',
-        accountStatus: 'active',
-      },
-      {
-        name: 'Sarah Connor',
-        email: 'sarah.connor@example.com',
-        passwordHash: userPasswordHash,
-        role: 'user',
-        vehicleNumber: 'CYBER-2026',
-        accountStatus: 'active',
-      },
-      {
-        name: 'Michael Knight',
-        email: 'michael.knight@example.com',
-        passwordHash: userPasswordHash,
-        role: 'user',
-        vehicleNumber: 'KITT-3000',
-        accountStatus: 'active',
-      },
-    ]);
-    console.log(`✅ ${demoUsers.length} Demo Users Created (Password: User1234!)`);
+    // 2. Create Demo Client (Regular User)
+    const clientPasswordHash = await User.hashPassword('Client1234!');
+    const demoClient = await User.create({
+      name: 'Demo Client',
+      email: 'client@smartpark.com',
+      passwordHash: clientPasswordHash,
+      role: 'user',
+      vehicleNumber: 'KHI-7860',
+      accountStatus: 'active',
+    });
+    console.log(`✅ Demo Client Created: ${demoClient.email} (Password: Client1234!)`);
 
-    // 3. Create Diverse Parking Slots
+    // 3. Create Diverse Parking Slots (PKR Hourly Rates)
     const slotsData = [
       // Central Plaza Deck (Floor 1 & Floor 2)
-      { slotNumber: 'CP-101', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 5.0, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Near main pedestrian exit' },
-      { slotNumber: 'CP-102', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 5.0, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Wide standard slot' },
-      { slotNumber: 'CP-103', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 4.0, slotType: 'accessible', active: true, maintenanceStatus: false, description: 'Wide bay near elevator' },
-      { slotNumber: 'CP-104', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 7.5, slotType: 'ev_charging', active: true, maintenanceStatus: false, description: 'Level 2 EV fast charger' },
-      { slotNumber: 'CP-105', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 10.0, slotType: 'vip', active: true, maintenanceStatus: false, description: 'Reserved premium executive spot' },
-      { slotNumber: 'CP-201', area: 'Central Plaza Deck', floorOrZone: 'Floor 2', hourlyRate: 4.5, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Upper covered deck' },
-      { slotNumber: 'CP-202', area: 'Central Plaza Deck', floorOrZone: 'Floor 2', hourlyRate: 4.5, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Upper covered deck' },
-      { slotNumber: 'CP-203', area: 'Central Plaza Deck', floorOrZone: 'Floor 2', hourlyRate: 3.5, slotType: 'compact', active: true, maintenanceStatus: false, description: 'Compact cars only' },
-      { slotNumber: 'CP-204', area: 'Central Plaza Deck', floorOrZone: 'Floor 2', hourlyRate: 4.5, slotType: 'standard', active: true, maintenanceStatus: true, description: 'Sensor maintenance in progress' },
+      { slotNumber: 'CP-101', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 150, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Near main pedestrian exit' },
+      { slotNumber: 'CP-102', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 150, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Wide standard slot' },
+      { slotNumber: 'CP-103', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 100, slotType: 'accessible', active: true, maintenanceStatus: false, description: 'Wide bay near elevator' },
+      { slotNumber: 'CP-104', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 200, slotType: 'ev_charging', active: true, maintenanceStatus: false, description: 'Level 2 EV fast charger' },
+      { slotNumber: 'CP-105', area: 'Central Plaza Deck', floorOrZone: 'Floor 1', hourlyRate: 250, slotType: 'vip', active: true, maintenanceStatus: false, description: 'Reserved premium executive spot' },
+      { slotNumber: 'CP-201', area: 'Central Plaza Deck', floorOrZone: 'Floor 2', hourlyRate: 120, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Upper covered deck' },
+      { slotNumber: 'CP-202', area: 'Central Plaza Deck', floorOrZone: 'Floor 2', hourlyRate: 120, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Upper covered deck' },
+      { slotNumber: 'CP-203', area: 'Central Plaza Deck', floorOrZone: 'Floor 2', hourlyRate: 90, slotType: 'compact', active: true, maintenanceStatus: false, description: 'Compact cars only' },
+      { slotNumber: 'CP-204', area: 'Central Plaza Deck', floorOrZone: 'Floor 2', hourlyRate: 120, slotType: 'standard', active: true, maintenanceStatus: true, description: 'Sensor maintenance in progress' },
 
       // Terminal 1 Airport Express (Zone A & Zone B)
-      { slotNumber: 'T1-A01', area: 'Terminal 1 Express', floorOrZone: 'Zone A', hourlyRate: 9.0, slotType: 'vip', active: true, maintenanceStatus: false, description: 'Direct walking link to Terminal 1 check-in' },
-      { slotNumber: 'T1-A02', area: 'Terminal 1 Express', floorOrZone: 'Zone A', hourlyRate: 8.0, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Terminal 1 Departures' },
-      { slotNumber: 'T1-A03', area: 'Terminal 1 Express', floorOrZone: 'Zone A', hourlyRate: 10.0, slotType: 'ev_charging', active: true, maintenanceStatus: false, description: 'Rapid 50kW EV charging hub' },
-      { slotNumber: 'T1-A04', area: 'Terminal 1 Express', floorOrZone: 'Zone A', hourlyRate: 6.5, slotType: 'accessible', active: true, maintenanceStatus: false, description: 'Wheelchair access ramp' },
-      { slotNumber: 'T1-B01', area: 'Terminal 1 Express', floorOrZone: 'Zone B', hourlyRate: 7.0, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Long-term economy zone' },
-      { slotNumber: 'T1-B02', area: 'Terminal 1 Express', floorOrZone: 'Zone B', hourlyRate: 7.0, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Long-term economy zone' },
+      { slotNumber: 'T1-A01', area: 'Terminal 1 Express', floorOrZone: 'Zone A', hourlyRate: 250, slotType: 'vip', active: true, maintenanceStatus: false, description: 'Direct walking link to Terminal 1 check-in' },
+      { slotNumber: 'T1-A02', area: 'Terminal 1 Express', floorOrZone: 'Zone A', hourlyRate: 200, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Terminal 1 Departures' },
+      { slotNumber: 'T1-A03', area: 'Terminal 1 Express', floorOrZone: 'Zone A', hourlyRate: 250, slotType: 'ev_charging', active: true, maintenanceStatus: false, description: 'Rapid 50kW EV charging hub' },
+      { slotNumber: 'T1-A04', area: 'Terminal 1 Express', floorOrZone: 'Zone A', hourlyRate: 150, slotType: 'accessible', active: true, maintenanceStatus: false, description: 'Wheelchair access ramp' },
+      { slotNumber: 'T1-B01', area: 'Terminal 1 Express', floorOrZone: 'Zone B', hourlyRate: 180, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Long-term economy zone' },
+      { slotNumber: 'T1-B02', area: 'Terminal 1 Express', floorOrZone: 'Zone B', hourlyRate: 180, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Long-term economy zone' },
 
       // Metro Station Basement B1
-      { slotNumber: 'MS-B01', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 3.5, slotType: 'compact', active: true, maintenanceStatus: false, description: 'Commuter park & ride' },
-      { slotNumber: 'MS-B02', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 4.0, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Commuter park & ride' },
-      { slotNumber: 'MS-B03', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 4.0, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Near subway turnstiles' },
-      { slotNumber: 'MS-B04', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 6.0, slotType: 'ev_charging', active: true, maintenanceStatus: false, description: 'Subway commuter EV slot' },
-      { slotNumber: 'MS-B05', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 3.0, slotType: 'standard', active: false, maintenanceStatus: false, description: 'Temporarily deactivated zone' },
+      { slotNumber: 'MS-B01', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 90, slotType: 'compact', active: true, maintenanceStatus: false, description: 'Commuter park & ride' },
+      { slotNumber: 'MS-B02', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 100, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Commuter park & ride' },
+      { slotNumber: 'MS-B03', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 100, slotType: 'standard', active: true, maintenanceStatus: false, description: 'Near subway turnstiles' },
+      { slotNumber: 'MS-B04', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 150, slotType: 'ev_charging', active: true, maintenanceStatus: false, description: 'Subway commuter EV slot' },
+      { slotNumber: 'MS-B05', area: 'Metro Station B1', floorOrZone: 'Level -1', hourlyRate: 80, slotType: 'standard', active: false, maintenanceStatus: false, description: 'Temporarily deactivated zone' },
     ];
 
     const slots = await ParkingSlot.insertMany(slotsData);
@@ -104,7 +86,7 @@ export const seedDatabase = async (shouldDisconnect = true) => {
 
     // 4. Create realistic demo bookings and payments
     const now = new Date();
-    const primaryUser = demoUsers[0]; // John Doe
+    const primaryUser = demoClient;
 
     // A. Active booking occupying CP-101 right now
     const activeStart = new Date(now.getTime() - 45 * 60 * 1000); // started 45 mins ago
@@ -119,7 +101,7 @@ export const seedDatabase = async (shouldDisconnect = true) => {
       startTime: activeStart,
       endTime: activeEnd,
       durationMinutes: 120,
-      amount: 10.0,
+      amount: 300,
       bookingStatus: 'confirmed',
       paymentStatus: 'paid',
       vehicleNumber: primaryUser.vehicleNumber,
@@ -129,14 +111,14 @@ export const seedDatabase = async (shouldDisconnect = true) => {
     await Payment.create({
       bookingId: activeBooking._id,
       userId: primaryUser._id,
-      amount: 10.0,
+      amount: 300,
       method: 'credit_card',
       transactionReference: `TXN-SIM-${Date.now()}-A1`,
       status: 'paid',
       simulated: true,
     });
 
-    // B. Upcoming booking tomorrow for Sarah
+    // B. Upcoming booking tomorrow
     const tomorrowStart = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const tomorrowEnd = new Date(tomorrowStart.getTime() + 180 * 60 * 1000);
     const upRef = 'PRK-DEMO-UP02';
@@ -144,29 +126,29 @@ export const seedDatabase = async (shouldDisconnect = true) => {
 
     const upcomingBooking = await Booking.create({
       bookingReference: upRef,
-      userId: demoUsers[1]._id,
+      userId: primaryUser._id,
       slotId: slots[3]._id, // CP-104 EV Charging
       startTime: tomorrowStart,
       endTime: tomorrowEnd,
       durationMinutes: 180,
-      amount: 22.5,
+      amount: 600,
       bookingStatus: 'confirmed',
       paymentStatus: 'paid',
-      vehicleNumber: demoUsers[1].vehicleNumber,
+      vehicleNumber: primaryUser.vehicleNumber,
       qrCodeDataUrl: qrUp,
     });
 
     await Payment.create({
       bookingId: upcomingBooking._id,
-      userId: demoUsers[1]._id,
-      amount: 22.5,
+      userId: primaryUser._id,
+      amount: 600,
       method: 'digital_wallet',
       transactionReference: `TXN-SIM-${Date.now()}-U2`,
       status: 'paid',
       simulated: true,
     });
 
-    // C. Past completed booking for John Doe
+    // C. Past completed booking for Demo Client
     const pastStart = new Date(now.getTime() - 48 * 60 * 60 * 1000);
     const pastEnd = new Date(pastStart.getTime() + 120 * 60 * 1000);
     const pastRef = 'PRK-DEMO-CMP03';
@@ -179,7 +161,7 @@ export const seedDatabase = async (shouldDisconnect = true) => {
       startTime: pastStart,
       endTime: pastEnd,
       durationMinutes: 120,
-      amount: 18.0,
+      amount: 500,
       bookingStatus: 'completed',
       paymentStatus: 'paid',
       vehicleNumber: primaryUser.vehicleNumber,
@@ -190,26 +172,26 @@ export const seedDatabase = async (shouldDisconnect = true) => {
     await Payment.create({
       bookingId: pastBooking._id,
       userId: primaryUser._id,
-      amount: 18.0,
+      amount: 500,
       method: 'credit_card',
       transactionReference: `TXN-SIM-${Date.now()}-C3`,
       status: 'paid',
       simulated: true,
     });
 
-    // Notifications for John Doe
+    // Notifications for Demo Client
     await Notification.insertMany([
       {
         userId: primaryUser._id,
         title: 'Active Parking Session',
-        message: 'Your vehicle (ABC-1234) is currently parked at CP-101. Session expires in ~1 hour.',
+        message: 'Your vehicle (KHI-7860) is currently parked at CP-101. Session expires in ~1 hour.',
         type: 'booking',
         bookingId: activeBooking._id,
       },
       {
         userId: primaryUser._id,
         title: 'Payment Confirmation',
-        message: 'Simulated payment of $10.00 confirmed for CP-101. Digital receipt is ready.',
+        message: 'Simulated payment of PKR 300 confirmed for CP-101. Digital receipt is ready.',
         type: 'payment',
         bookingId: activeBooking._id,
       },

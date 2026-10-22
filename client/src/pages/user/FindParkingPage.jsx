@@ -468,7 +468,7 @@ const FindParkingPage = () => {
                       Hourly Rate
                     </span>
                     <span className="text-base font-black text-slate-900">
-                      ${slot.hourlyRate.toFixed(2)}
+                      PKR {slot.hourlyRate.toFixed(2)}
                       <span className="text-[10px] text-slate-400 font-normal">/hr</span>
                     </span>
                   </div>
@@ -542,7 +542,7 @@ const FindParkingPage = () => {
               <div className="flex justify-between items-center pt-2 border-t border-blue-200">
                 <span className="font-bold text-blue-900 text-sm">Estimated Total</span>
                 <span className="font-black text-blue-950 text-lg">
-                  ${Math.max(1, (durationHours * selectedSlot.hourlyRate)).toFixed(2)}
+                  PKR {Math.max(1, (durationHours * selectedSlot.hourlyRate)).toFixed(2)}
                 </span>
               </div>
             </div>

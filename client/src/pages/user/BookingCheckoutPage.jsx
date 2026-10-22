@@ -174,7 +174,7 @@ const BookingCheckoutPage = () => {
               </div>
               <div className="flex justify-between pt-2 border-t border-slate-200 text-sm font-bold">
                 <span className="text-slate-900">Amount Paid</span>
-                <span className="text-slate-900 font-black">${receipt.amount.toFixed(2)}</span>
+                <span className="text-slate-900 font-black">PKR {receipt.amount.toFixed(2)}</span>
               </div>
             </div>
 
@@ -267,7 +267,7 @@ const BookingCheckoutPage = () => {
               <div className="flex justify-between items-center pt-3 border-t border-slate-200 text-base font-extrabold">
                 <span className="text-slate-900">Total Amount Due</span>
                 <span className="text-blue-600 font-black text-xl">
-                  ${booking.amount?.toFixed(2)}
+                  PKR {booking.amount?.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -325,7 +325,7 @@ const BookingCheckoutPage = () => {
                 className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 disabled:opacity-50 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <CheckCircle2 className="w-5 h-5" />
-                {processing ? 'Processing Simulation...' : `Simulate Successful Payment ($${booking.amount?.toFixed(2)})`}
+                {processing ? 'Processing Simulation...' : `Simulate Successful Payment (PKR ${booking.amount?.toFixed(2)})`}
               </button>
 
               <button

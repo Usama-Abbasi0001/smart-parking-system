@@ -209,7 +209,7 @@ const MyBookingsPage = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 font-bold text-slate-900">
-                        ${b.amount?.toFixed(2)}
+                        PKR {b.amount?.toFixed(2)}
                       </td>
                       <td className="px-6 py-4 space-x-1">
                         <Badge status={b.bookingStatus} size="sm" />
@@ -279,7 +279,7 @@ const MyBookingsPage = () => {
                   </div>
                   <div className="text-right">
                     <span className="font-black text-slate-900 text-sm">
-                      ${b.amount?.toFixed(2)}
+                      PKR {b.amount?.toFixed(2)}
                     </span>
                     <div className="mt-1">
                       <Badge status={b.bookingStatus} size="sm" />
@@ -410,7 +410,7 @@ const MyBookingsPage = () => {
               </div>
               <div className="flex justify-between pt-2 border-t border-slate-200 text-sm font-bold">
                 <span className="text-slate-900">Total Price</span>
-                <span className="text-slate-900">${selectedBooking.amount?.toFixed(2)}</span>
+                <span className="text-slate-900">PKR {selectedBooking.amount?.toFixed(2)}</span>
               </div>
             </div>
 

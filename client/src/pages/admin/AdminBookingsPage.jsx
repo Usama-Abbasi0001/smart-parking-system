@@ -219,7 +219,7 @@ const AdminBookingsPage = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 font-bold text-slate-900">
-                      ${b.amount?.toFixed(2)}
+                      PKR {b.amount?.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 space-x-1">
                       <Badge status={b.bookingStatus} size="sm" />
