@@ -12,11 +12,23 @@ export const register = async (req, res, next) => {
   try {
     const { name, email, password, vehicleNumber } = req.body;
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return res.status(409).json({
         success: false,
         message: 'An account with this email address already exists.',
+      });
+    }
+
+    const cleanVehicle = vehicleNumber.trim().toUpperCase();
+    const escapedVehicle = cleanVehicle.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const existingVehicle = await User.findOne({
+      vehicleNumber: { $regex: new RegExp(`^${escapedVehicle}$`, 'i') },
+    });
+    if (existingVehicle) {
+      return res.status(409).json({
+        success: false,
+        message: 'An account with this vehicle plate number already exists.',
       });
     }
 
@@ -25,10 +37,10 @@ export const register = async (req, res, next) => {
     // Public registration ALWAYS assigns role: 'user'
     const newUser = await User.create({
       name,
-      email,
+      email: email.toLowerCase(),
       passwordHash,
       role: 'user',
-      vehicleNumber: vehicleNumber.toUpperCase(),
+      vehicleNumber: cleanVehicle,
       accountStatus: 'active',
     });
 
@@ -57,13 +69,30 @@ export const register = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const rawIdentifier = (req.body.identifier || req.body.email || req.body.vehicleNumber || '').trim();
+    const { password } = req.body;
 
-    const user = await User.findOne({ email }).select('+passwordHash');
+    if (!rawIdentifier) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide your vehicle plate number or email address.',
+      });
+    }
+
+    const escapedIdentifier = rawIdentifier.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+
+    // Find user by either email or vehicle registration number (both case-insensitive)
+    const user = await User.findOne({
+      $or: [
+        { email: rawIdentifier.toLowerCase() },
+        { vehicleNumber: { $regex: new RegExp(`^${escapedIdentifier}$`, 'i') } },
+      ],
+    }).select('+passwordHash');
+
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email address or password.',
+        message: 'Invalid vehicle number/email or password.',
       });
     }
 
@@ -78,7 +107,7 @@ export const login = async (req, res, next) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email address or password.',
+        message: 'Invalid vehicle number/email or password.',
       });
     }
 

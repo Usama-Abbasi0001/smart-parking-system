@@ -31,13 +31,13 @@ export const validateRegister = [
 ];
 
 export const validateLogin = [
-  body('email')
-    .trim()
-    .notEmpty()
-    .withMessage('Email address is required')
-    .isEmail()
-    .withMessage('Please provide a valid email address')
-    .normalizeEmail(),
+  body().custom((value, { req }) => {
+    const ident = req.body.identifier || req.body.email || req.body.vehicleNumber;
+    if (!ident || typeof ident !== 'string' || !ident.trim()) {
+      throw new Error('Vehicle plate number or email address is required');
+    }
+    return true;
+  }),
   body('password').notEmpty().withMessage('Password is required'),
   validateRequest,
 ];

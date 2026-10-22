@@ -32,9 +32,14 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (identifier, password) => {
     try {
-      const res = await api.post('/auth/login', { email, password });
+      const res = await api.post('/auth/login', {
+        identifier,
+        email: identifier,
+        vehicleNumber: identifier,
+        password,
+      });
       const { user: userData, token: jwtToken } = res.data.data;
 
       localStorage.setItem('parkpulse_token', jwtToken);
