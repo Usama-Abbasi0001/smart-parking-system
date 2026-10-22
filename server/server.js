@@ -77,10 +77,30 @@ const authLimiter = rateLimit({
   },
 });
 
+let isSeeded = false;
+
 // Ensure database connection for each request (crucial for Vercel serverless functions)
 app.use(async (req, res, next) => {
   try {
     await connectDB();
+
+    // Auto-seed on first request if database is completely empty (helps Vercel serverless demo login)
+    if (!isSeeded) {
+      try {
+        const User = (await import('./models/User.js')).default;
+        const count = await User.countDocuments();
+        if (count === 0) {
+          console.log('Database is empty. Initializing initial demo seed data...');
+          const { seedDatabase } = await import('./scripts/seed.js');
+          await seedDatabase(false);
+        }
+      } catch (seedErr) {
+        console.warn('Auto-seed check warning (non-fatal):', seedErr.message);
+      } finally {
+        isSeeded = true;
+      }
+    }
+
     next();
   } catch (error) {
     console.error('Database connection error in request:', error.message);
