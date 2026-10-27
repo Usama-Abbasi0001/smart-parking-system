@@ -44,7 +44,7 @@ const bookingSchema = new mongoose.Schema(
     },
     bookingStatus: {
       type: String,
-      enum: ['pending_payment', 'confirmed', 'cancelled', 'completed', 'expired'],
+      enum: ['pending_payment', 'confirmed', 'cancelled', 'completed', 'expired', 'overdue'],
       default: 'pending_payment',
       index: true,
     },
@@ -77,6 +77,40 @@ const bookingSchema = new mongoose.Schema(
       type: Date,
       index: true,
     },
+    // Expiry and reminder tracking
+    reminderSent15m: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    reminderSent15mAt: {
+      type: Date,
+    },
+    expiryEmailSent: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    expiryEmailSentAt: {
+      type: Date,
+    },
+    overstayStatus: {
+      type: String,
+      enum: ['none', 'grace_period', 'overstay'],
+      default: 'none',
+      index: true,
+    },
+    extensionHistory: [
+      {
+        addedMinutes: { type: Number, required: true },
+        additionalAmount: { type: Number, required: true },
+        previousEndTime: { type: Date, required: true },
+        newEndTime: { type: Date, required: true },
+        extendedAt: { type: Date, default: Date.now },
+        transactionReference: { type: String },
+        paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },
+      },
+    ],
   },
   {
     timestamps: true,

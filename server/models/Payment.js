@@ -41,6 +41,16 @@ const paymentSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    type: {
+      type: String,
+      enum: ['initial', 'extension', 'refund'],
+      default: 'initial',
+      index: true,
+    },
+    extensionMinutes: {
+      type: Number,
+      default: 0,
+    },
     failureReason: {
       type: String,
       default: '',

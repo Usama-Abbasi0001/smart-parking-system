@@ -189,14 +189,27 @@ const UserDashboard = () => {
             </div>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end gap-3">
-            <Link
-              to={isAdmin ? `/admin/bookings` : `/my-bookings`}
-              className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
-            >
-              {isAdmin ? 'View in Admin Bookings' : 'View Booking QR Code & Receipt'}
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+            {!isAdmin &&
+              ['confirmed', 'overdue'].includes(nextUpcomingBooking.bookingStatus) &&
+              nextUpcomingBooking.paymentStatus === 'paid' && (
+                <Link
+                  to={`/my-bookings?extend=${nextUpcomingBooking._id}`}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  Extend Parking Time
+                </Link>
+              )}
+            <div className="ml-auto">
+              <Link
+                to={isAdmin ? `/admin/bookings` : `/my-bookings`}
+                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              >
+                {isAdmin ? 'View in Admin Bookings' : 'View Booking QR Code & Receipt'}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
         </div>
       )}

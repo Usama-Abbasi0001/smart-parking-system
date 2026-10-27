@@ -466,3 +466,299 @@ export const sendPasswordResetEmail = async ({ user, resetCode }) => {
   }
 };
 
+/**
+ * 15-Minute Expiry Reminder Email
+ */
+export const sendExpiryReminderEmail = async ({ user, booking, slot, minutesRemaining = 15 }) => {
+  try {
+    if (!user || !user.email) return { success: false, reason: 'missing_email' };
+
+    const transporter = await getTransporter();
+    const cleanEmail = user.email.toLowerCase().trim();
+    const clientBase = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+    const extensionUrl = `${clientBase}/my-bookings?extend=${booking._id}`;
+
+    const slotNum = slot?.slotNumber || 'Slot';
+    const areaName = slot?.area || 'Parking Deck';
+    const formattedEnd = formatDateTime(booking.endTime);
+    const vehiclePlate = (booking.vehicleNumber || user.vehicleNumber || 'N/A').toUpperCase();
+
+    const subject = `⚠️ Parking Alert: Your slot ${slotNum} expires in ${minutesRemaining} minutes!`;
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Parking Expiry Alert</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #334155;">
+  <div style="max-width: 580px; margin: 30px auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;">
+    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px 24px; text-align: center; color: #ffffff;">
+      <div style="display: inline-block; background: rgba(0,0,0,0.15); padding: 6px 14px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+        ⏳ Expiry Countdown
+      </div>
+      <h1 style="margin: 0; font-size: 24px; font-weight: 800;">
+        Reservation Expiring in ${minutesRemaining} Minutes!
+      </h1>
+      <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.95;">
+        ParkPulse Smart Parking Alert
+      </p>
+    </div>
+
+    <div style="padding: 28px 24px;">
+      <p style="font-size: 15px; line-height: 1.6; margin: 0 0 18px 0; color: #1e293b;">
+        Hello <strong>${user.name}</strong>,<br>
+        Your parking session for slot <strong>${slotNum}</strong> (${areaName}) is scheduled to conclude at <strong>${formattedEnd}</strong>.
+      </p>
+
+      <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 14px; padding: 18px; margin-bottom: 22px;">
+        <table style="width: 100%; font-size: 13px; line-height: 1.8;">
+          <tr>
+            <td style="color: #92400e; width: 45%;"><strong>Vehicle Plate:</strong></td>
+            <td style="color: #78350f; font-family: monospace; font-weight: 800; font-size: 14px;">🚗 ${vehiclePlate}</td>
+          </tr>
+          <tr>
+            <td style="color: #92400e;"><strong>Reserved Bay:</strong></td>
+            <td style="color: #78350f; font-weight: 700;">${slotNum} (${areaName})</td>
+          </tr>
+          <tr>
+            <td style="color: #92400e;"><strong>Scheduled End:</strong></td>
+            <td style="color: #b45309; font-weight: 800;">${formattedEnd}</td>
+          </tr>
+        </table>
+      </div>
+
+      <p style="font-size: 13px; color: #475569; margin: 0 0 20px 0;">
+        Need more time? You can extend your reservation online right now to keep your parking slot without disruption:
+      </p>
+
+      <div style="text-align: center; margin: 26px 0;">
+        <a href="${extensionUrl}" style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
+          Extend Parking Reservation →
+        </a>
+      </div>
+
+      <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">
+        Direct link: <a href="${extensionUrl}" style="color: #2563eb;">${extensionUrl}</a>
+      </p>
+    </div>
+
+    <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px; text-align: center; font-size: 11px; color: #94a3b8;">
+      © ${new Date().getFullYear()} ParkPulse Smart Parking System. Automated Expiry Notification.
+    </div>
+  </div>
+</body>
+</html>
+    `;
+
+    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com').trim();
+    const fromAddress = `"ParkPulse Alerts" <${userEmail}>`;
+
+    const info = await transporter.sendMail({
+      from: fromAddress,
+      to: cleanEmail,
+      replyTo: userEmail,
+      subject,
+      html: htmlContent,
+      text: `Parking Alert: Your slot ${slotNum} at ${areaName} expires in ${minutesRemaining} minutes at ${formattedEnd}.\nExtend parking now: ${extensionUrl}`,
+    });
+
+    console.log(`[EmailService] Expiry reminder email dispatched to ${cleanEmail}`);
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.error('[EmailService] Failed to send expiry reminder email (non-fatal):', err.message);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * At-Expiry / Overdue Notification Email
+ */
+export const sendBookingExpiredEmail = async ({ user, booking, slot, extensionUrl }) => {
+  try {
+    if (!user || !user.email) return { success: false, reason: 'missing_email' };
+
+    const transporter = await getTransporter();
+    const cleanEmail = user.email.toLowerCase().trim();
+    const clientBase = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+    const extendLink = extensionUrl || `${clientBase}/my-bookings?extend=${booking._id}`;
+
+    const slotNum = slot?.slotNumber || 'Slot';
+    const areaName = slot?.area || 'Parking Deck';
+    const formattedEnd = formatDateTime(booking.endTime);
+    const vehiclePlate = (booking.vehicleNumber || user.vehicleNumber || 'N/A').toUpperCase();
+
+    const subject = `⛔ Notice: Parking Reservation for Slot ${slotNum} Has Elapsed`;
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Reservation Period Elapsed</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #334155;">
+  <div style="max-width: 580px; margin: 30px auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;">
+    <div style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); padding: 30px 24px; text-align: center; color: #ffffff;">
+      <div style="display: inline-block; background: rgba(0,0,0,0.2); padding: 6px 14px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+        ⚠️ Time Elapsed
+      </div>
+      <h1 style="margin: 0; font-size: 24px; font-weight: 800;">
+        Reservation Has Reached Expiry Time
+      </h1>
+      <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.95;">
+        Scheduled End Time: ${formattedEnd}
+      </p>
+    </div>
+
+    <div style="padding: 28px 24px;">
+      <p style="font-size: 15px; line-height: 1.6; margin: 0 0 18px 0; color: #1e293b;">
+        Hello <strong>${user.name}</strong>,<br>
+        Your scheduled reservation for <strong>Slot ${slotNum}</strong> (${areaName}) with vehicle <strong>${vehiclePlate}</strong> has elapsed as of ${formattedEnd}.
+      </p>
+
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 14px; padding: 18px; margin-bottom: 22px;">
+        <p style="margin: 0; font-size: 13px; color: #991b1b; line-height: 1.6;">
+          <strong>Grace Period & Overstay Rules:</strong> A standard grace period applies for departure. If your vehicle is still parked, please extend your reservation immediately or proceed to the exit gate to avoid penalty fees.
+        </p>
+      </div>
+
+      <div style="text-align: center; margin: 26px 0;">
+        <a href="${extendLink}" style="display: inline-block; background-color: #059669; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);">
+          Extend Parking Time Online →
+        </a>
+      </div>
+    </div>
+
+    <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px; text-align: center; font-size: 11px; color: #94a3b8;">
+      © ${new Date().getFullYear()} ParkPulse Smart Parking System. Automated Expiry Notification.
+    </div>
+  </div>
+</body>
+</html>
+    `;
+
+    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com').trim();
+    const fromAddress = `"ParkPulse Alerts" <${userEmail}>`;
+
+    const info = await transporter.sendMail({
+      from: fromAddress,
+      to: cleanEmail,
+      replyTo: userEmail,
+      subject,
+      html: htmlContent,
+      text: `Notice: Your parking session for Slot ${slotNum} (${areaName}) elapsed at ${formattedEnd}.\nIf you are still parked, please extend your reservation: ${extendLink}`,
+    });
+
+    console.log(`[EmailService] Booking expired notification sent to ${cleanEmail}`);
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.error('[EmailService] Failed to send expired booking email (non-fatal):', err.message);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Extension Confirmation & Digital Receipt Email
+ */
+export const sendExtensionConfirmationEmail = async ({ user, booking, slot, payment, extensionDetails }) => {
+  try {
+    if (!user || !user.email) return { success: false, reason: 'missing_email' };
+
+    const transporter = await getTransporter();
+    const cleanEmail = user.email.toLowerCase().trim();
+
+    const slotNum = slot?.slotNumber || booking.slotId?.slotNumber || 'Slot';
+    const areaName = slot?.area || booking.slotId?.area || 'Parking Deck';
+    const formattedNewEnd = formatDateTime(booking.endTime);
+    const vehiclePlate = (booking.vehicleNumber || user.vehicleNumber || 'N/A').toUpperCase();
+    const txnRef = payment?.transactionReference || 'TXN-EXT-SIM';
+    const addedMinutes = extensionDetails?.addedMinutes || 60;
+    const additionalAmount = Number(extensionDetails?.additionalAmount || 0).toLocaleString();
+
+    const subject = `✅ Extension Confirmed: Slot ${slotNum} until ${formattedNewEnd}`;
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Parking Extension Receipt</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #334155;">
+  <div style="max-width: 580px; margin: 30px auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;">
+    <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); padding: 30px 24px; text-align: center; color: #ffffff;">
+      <div style="display: inline-block; background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+        ✓ Extension Approved
+      </div>
+      <h1 style="margin: 0; font-size: 24px; font-weight: 800;">
+        +${addedMinutes} Minutes Added Successfully!
+      </h1>
+      <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.95;">
+        New Departure Time: ${formattedNewEnd}
+      </p>
+    </div>
+
+    <div style="padding: 28px 24px;">
+      <p style="font-size: 15px; line-height: 1.6; margin: 0 0 18px 0; color: #1e293b;">
+        Hello <strong>${user.name}</strong>,<br>
+        Your parking session for slot <strong>${slotNum}</strong> has been successfully extended. Your parking space is reserved through <strong>${formattedNewEnd}</strong>.
+      </p>
+
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 22px; font-size: 13px;">
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 10px 0; color: #64748b;"><strong>Booking Reference:</strong></td>
+          <td style="padding: 10px 0; font-family: monospace; font-weight: 800; color: #0f172a;">${booking.bookingReference}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 10px 0; color: #64748b;"><strong>Vehicle Plate:</strong></td>
+          <td style="padding: 10px 0; font-family: monospace; font-weight: 800; color: #2563eb;">🚗 ${vehiclePlate}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 10px 0; color: #64748b;"><strong>Slot & Deck:</strong></td>
+          <td style="padding: 10px 0; font-weight: 700; color: #0f172a;">${slotNum} (${areaName})</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 10px 0; color: #64748b;"><strong>New End Time:</strong></td>
+          <td style="padding: 10px 0; font-weight: 800; color: #059669;">${formattedNewEnd}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 10px 0; color: #64748b;"><strong>Extension Fee Paid:</strong></td>
+          <td style="padding: 10px 0; font-weight: 800; color: #059669;">PKR ${additionalAmount}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; color: #64748b;"><strong>Transaction Ref:</strong></td>
+          <td style="padding: 10px 0; font-family: monospace; color: #64748b;">${txnRef}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px; text-align: center; font-size: 11px; color: #94a3b8;">
+      © ${new Date().getFullYear()} ParkPulse Smart Parking System. Automated Extension Receipt.
+    </div>
+  </div>
+</body>
+</html>
+    `;
+
+    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com').trim();
+    const fromAddress = `"ParkPulse Billing" <${userEmail}>`;
+
+    const info = await transporter.sendMail({
+      from: fromAddress,
+      to: cleanEmail,
+      replyTo: userEmail,
+      subject,
+      html: htmlContent,
+      text: `Extension Confirmed!\nBooking: ${booking.bookingReference}\nSlot: ${slotNum} (${areaName})\nAdded: ${addedMinutes} mins\nNew End Time: ${formattedNewEnd}\nAmount Paid: PKR ${additionalAmount}\nTxn: ${txnRef}`,
+    });
+
+    console.log(`[EmailService] Extension confirmation email dispatched to ${cleanEmail}`);
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.error('[EmailService] Failed to send extension confirmation email (non-fatal):', err.message);
+    return { success: false, error: err.message };
+  }
+};
+

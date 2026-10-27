@@ -1,4 +1,4 @@
-import { body } from 'express-validator';
+import { body, query } from 'express-validator';
 import { validateRequest } from '../middleware/validate.js';
 
 export const validateBookingCreate = [
@@ -73,3 +73,29 @@ export const validateDemoPayment = [
     .withMessage('Invalid payment method'),
   validateRequest,
 ];
+
+export const validateExtensionQuote = [
+  query('minutes')
+    .optional()
+    .isInt({ min: 15, max: 1440 })
+    .withMessage('Extension minutes must be an integer between 15 and 1440'),
+  validateRequest,
+];
+
+export const validateBookingExtend = [
+  body('additionalMinutes')
+    .notEmpty()
+    .withMessage('Additional extension duration is required')
+    .isInt({ min: 15, max: 1440 })
+    .withMessage('Additional minutes must be between 15 and 1440'),
+  body('method')
+    .optional()
+    .isIn(['credit_card', 'debit_card', 'digital_wallet', 'simulated_instant'])
+    .withMessage('Invalid payment method'),
+  body('outcome')
+    .optional()
+    .isIn(['success', 'failure'])
+    .withMessage('Outcome must be either "success" or "failure"'),
+  validateRequest,
+];
+

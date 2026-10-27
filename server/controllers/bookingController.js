@@ -5,7 +5,10 @@ import Payment from '../models/Payment.js';
 import Notification from '../models/Notification.js';
 import { checkSlotAvailability } from '../services/availabilityService.js';
 import { generateBookingQRCode } from '../services/qrService.js';
-import { sendBookingConfirmationEmail } from '../services/emailService.js';
+import {
+  sendBookingConfirmationEmail,
+  sendExtensionConfirmationEmail,
+} from '../services/emailService.js';
 
 /**
  * Generate a unique, readable booking reference
@@ -483,3 +486,285 @@ export const verifyBookingReference = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Get extension pricing quote and availability check for proposed extra minutes
+ */
+export const getExtensionQuote = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const requestedMinutes = parseInt(req.query.minutes || '60', 10);
+
+    const booking = await Booking.findById(id).populate('slotId');
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    // Access control: driver can only access their own reservation unless Admin
+    if (
+      req.user.role !== 'admin' &&
+      booking.userId.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: You do not have permission to view this reservation.',
+      });
+    }
+
+    if (booking.bookingStatus === 'cancelled' || booking.bookingStatus === 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot extend a ${booking.bookingStatus} booking.`,
+      });
+    }
+
+    const slot = booking.slotId;
+    if (!slot || !slot.active || slot.maintenanceStatus) {
+      return res.status(400).json({
+        success: false,
+        message: 'Parking slot is inactive or under maintenance.',
+      });
+    }
+
+    const currentEndTime = new Date(booking.endTime);
+    const newEndTime = new Date(currentEndTime.getTime() + requestedMinutes * 60 * 1000);
+
+    // Concurrency / overlap check for the proposed extension window (excluding current booking)
+    const availabilityCheck = await checkSlotAvailability(
+      slot._id,
+      booking.endTime,
+      newEndTime,
+      booking._id
+    );
+
+    // Calculate incremental amount based strictly on slot's stored hourlyRate
+    const hours = requestedMinutes / 60;
+    const additionalAmount = Math.max(1, parseFloat((hours * slot.hourlyRate).toFixed(2)));
+    const newTotalAmount = parseFloat((booking.amount + additionalAmount).toFixed(2));
+    const newTotalMinutes = booking.durationMinutes + requestedMinutes;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        bookingId: booking._id,
+        bookingReference: booking.bookingReference,
+        slotNumber: slot.slotNumber,
+        area: slot.area,
+        hourlyRate: slot.hourlyRate,
+        currentStartTime: booking.startTime,
+        currentEndTime: booking.endTime,
+        additionalMinutes: requestedMinutes,
+        additionalAmount,
+        newEndTime,
+        newTotalMinutes,
+        newTotalAmount,
+        isAvailable: availabilityCheck.available,
+        reason: availabilityCheck.reason || null,
+        conflictingBooking: availabilityCheck.conflictingBooking || null,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Extend booking duration with simulated incremental payment
+ */
+export const extendBooking = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const {
+      additionalMinutes = 60,
+      method = 'simulated_instant',
+      outcome = 'success',
+    } = req.body;
+
+    const addedMins = parseInt(additionalMinutes, 10);
+    if (isNaN(addedMins) || addedMins < 15 || addedMins > 1440) {
+      return res.status(400).json({
+        success: false,
+        message: 'Extension minutes must be between 15 and 1440 (24 hours).',
+      });
+    }
+
+    const booking = await Booking.findById(id).populate('slotId');
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    // Access control: driver can only extend their own reservation unless Admin
+    if (
+      req.user.role !== 'admin' &&
+      booking.userId.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: You do not have permission to extend this reservation.',
+      });
+    }
+
+    if (booking.bookingStatus === 'cancelled' || booking.bookingStatus === 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot extend a ${booking.bookingStatus} booking.`,
+      });
+    }
+
+    const slot = booking.slotId;
+    if (!slot || !slot.active || slot.maintenanceStatus) {
+      return res.status(400).json({
+        success: false,
+        message: 'Parking slot is inactive or under maintenance.',
+      });
+    }
+
+    const currentEndTime = new Date(booking.endTime);
+    const newEndTime = new Date(currentEndTime.getTime() + addedMins * 60 * 1000);
+
+    // Concurrency / overlap check for the proposed extension window
+    const availabilityCheck = await checkSlotAvailability(
+      slot._id,
+      booking.endTime,
+      newEndTime,
+      booking._id
+    );
+
+    if (!availabilityCheck.available) {
+      return res.status(409).json({
+        success: false,
+        message: availabilityCheck.reason || 'This parking slot has a conflicting reservation during the extended time window.',
+        conflictingBooking: availabilityCheck.conflictingBooking,
+      });
+    }
+
+    // Strict server-side incremental price calculation (never trusting frontend-supplied amount)
+    const hours = addedMins / 60;
+    const additionalAmount = Math.max(1, parseFloat((hours * slot.hourlyRate).toFixed(2)));
+
+    const transactionReference = generateTransactionRef().replace('TXN-SIM', 'TXN-EXT');
+
+    if (outcome === 'success') {
+      // 1. Record verified payment for the extension
+      const payment = await Payment.create({
+        bookingId: booking._id,
+        userId: req.user._id,
+        amount: additionalAmount,
+        method,
+        transactionReference,
+        status: 'paid',
+        simulated: true,
+        type: 'extension',
+        extensionMinutes: addedMins,
+      });
+
+      // 2. Atomically update reservation
+      const previousEndTime = booking.endTime;
+      booking.endTime = newEndTime;
+      booking.durationMinutes += addedMins;
+      booking.amount = parseFloat((booking.amount + additionalAmount).toFixed(2));
+      booking.bookingStatus = 'confirmed';
+      booking.overstayStatus = 'none';
+
+      // If extended by more than 15 minutes into the future, reset reminder flags so driver receives a new reminder
+      const now = new Date();
+      if (newEndTime.getTime() - now.getTime() > 15 * 60 * 1000) {
+        booking.reminderSent15m = false;
+        booking.reminderSent15mAt = undefined;
+      }
+      booking.expiryEmailSent = false;
+      booking.expiryEmailSentAt = undefined;
+
+      booking.extensionHistory.push({
+        addedMinutes: addedMins,
+        additionalAmount,
+        previousEndTime,
+        newEndTime,
+        transactionReference,
+        paymentId: payment._id,
+        extendedAt: new Date(),
+      });
+
+      await booking.save();
+
+      // 3. In-app notification
+      await Notification.create({
+        userId: req.user._id,
+        title: 'Parking Extension Confirmed!',
+        message: `Your reservation for slot ${slot.slotNumber} was extended by ${addedMins} minutes until ${newEndTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
+        type: 'payment',
+        bookingId: booking._id,
+      });
+
+      // 4. Dispatch extension confirmation email non-blocking
+      sendExtensionConfirmationEmail({
+        user: req.user,
+        booking,
+        slot,
+        payment,
+        extensionDetails: {
+          addedMinutes: addedMins,
+          additionalAmount,
+        },
+      }).catch((emailErr) => {
+        console.warn('[BookingController] Extension email dispatch warning:', emailErr.message);
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: `Successfully extended by ${addedMins} minutes! New departure: ${newEndTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        data: {
+          booking,
+          payment,
+          receipt: {
+            transactionReference,
+            bookingReference: booking.bookingReference,
+            slotNumber: slot.slotNumber,
+            area: slot.area,
+            addedMinutes: addedMins,
+            additionalAmount,
+            previousEndTime,
+            newEndTime,
+            paidAt: payment.createdAt,
+            method,
+          },
+        },
+      });
+    } else {
+      // Record failed payment attempt; do NOT update booking time or duration
+      const payment = await Payment.create({
+        bookingId: booking._id,
+        userId: req.user._id,
+        amount: additionalAmount,
+        method,
+        transactionReference,
+        status: 'failed',
+        simulated: true,
+        type: 'extension',
+        extensionMinutes: addedMins,
+        failureReason: 'Simulated card decline on extension payment',
+      });
+
+      await Notification.create({
+        userId: req.user._id,
+        title: 'Extension Payment Declined',
+        message: `Payment attempt of PKR ${additionalAmount.toLocaleString()} for ${addedMins}-min extension was declined. You may retry.`,
+        type: 'payment',
+        bookingId: booking._id,
+      });
+
+      return res.status(402).json({
+        success: false,
+        message: 'Extension payment simulation failed as requested (Test Scenario). Reservation end time was not modified.',
+        data: {
+          booking,
+          payment,
+          canRetry: true,
+        },
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+

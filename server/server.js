@@ -9,6 +9,7 @@ dotenv.config();
 import rateLimit from 'express-rate-limit';
 
 import { connectDB, disconnectDB } from './config/db.js';
+import { startScheduler, stopScheduler, runExpiryAndReminderSweep } from './services/schedulerService.js';
 import authRoutes from './routes/authRoutes.js';
 import slotRoutes from './routes/slotRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
@@ -173,6 +174,8 @@ const startServer = async () => {
       console.log(`📡 Health Check: http://localhost:${PORT}/api/health`);
       console.log(`🔒 Security headers, CORS, & rate limiting enabled`);
       console.log(`===============================================`);
+      // Start background expiry and reminder scheduler
+      startScheduler(30000);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
@@ -183,6 +186,7 @@ const startServer = async () => {
 // Graceful shutdown
 const handleShutdown = async (signal) => {
   console.log(`\nReceived ${signal}. Shutting down gracefully...`);
+  stopScheduler();
   if (server) {
     server.close(async () => {
       await disconnectDB();

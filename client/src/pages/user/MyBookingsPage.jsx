@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import api, { getErrorMessage } from '../../services/api';
 import {
   CalendarCheck,
@@ -19,9 +19,11 @@ import Modal from '../../components/common/Modal';
 import Pagination from '../../components/common/Pagination';
 import EmptyState from '../../components/common/EmptyState';
 import { TableSkeleton } from '../../components/common/LoadingSkeleton';
+import ExtendBookingModal from '../../components/common/ExtendBookingModal';
 import toast from 'react-hot-toast';
 
 const MyBookingsPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [bookings, setBookings] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [activeTab, setActiveTab] = useState('all');
@@ -32,6 +34,7 @@ const MyBookingsPage = () => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [qrModalBooking, setQrModalBooking] = useState(null);
   const [cancelModalBooking, setCancelModalBooking] = useState(null);
+  const [extendModalBooking, setExtendModalBooking] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
 
@@ -67,6 +70,25 @@ const MyBookingsPage = () => {
   useEffect(() => {
     fetchBookings(1);
   }, [activeTab]);
+
+  // Deep-link handler from email notification (?extend=bookingId)
+  useEffect(() => {
+    const extendId = searchParams.get('extend');
+    if (!extendId) return;
+
+    const existing = bookings.find((b) => b._id === extendId);
+    if (existing) {
+      setExtendModalBooking(existing);
+    } else if (!loading) {
+      api.get(`/bookings/${extendId}`)
+        .then((res) => {
+          if (res.data?.data) {
+            setExtendModalBooking(res.data.data);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [searchParams, bookings, loading]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -185,6 +207,9 @@ const MyBookingsPage = () => {
                     !['cancelled', 'completed'].includes(b.bookingStatus) &&
                     new Date(b.endTime).getTime() > Date.now();
                   const canPay = b.bookingStatus === 'pending_payment';
+                  const canExtend =
+                    ['confirmed', 'overdue'].includes(b.bookingStatus) &&
+                    b.paymentStatus === 'paid';
 
                   return (
                     <tr key={b._id} className="hover:bg-slate-50/70 transition-colors">
@@ -226,6 +251,18 @@ const MyBookingsPage = () => {
                               className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                             >
                               <QrCode className="w-4 h-4" />
+                            </button>
+                          )}
+
+                          {/* Extend Duration Button */}
+                          {canExtend && (
+                            <button
+                              onClick={() => setExtendModalBooking(b)}
+                              title="Extend Parking Duration"
+                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1"
+                            >
+                              <Clock className="w-3 h-3" />
+                              Extend
                             </button>
                           )}
 
@@ -293,7 +330,7 @@ const MyBookingsPage = () => {
                   <span className="font-mono">{b.vehicleNumber}</span>
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                <div className="flex flex-wrap gap-2 pt-2">
                   {b.qrCodeDataUrl && (
                     <button
                       onClick={() => setQrModalBooking(b)}
@@ -301,6 +338,15 @@ const MyBookingsPage = () => {
                     >
                       <QrCode className="w-3.5 h-3.5" />
                       QR Pass
+                    </button>
+                  )}
+                  {['confirmed', 'overdue'].includes(b.bookingStatus) && b.paymentStatus === 'paid' && (
+                    <button
+                      onClick={() => setExtendModalBooking(b)}
+                      className="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1"
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      Extend
                     </button>
                   )}
                   {b.bookingStatus === 'pending_payment' && (
@@ -429,6 +475,22 @@ const MyBookingsPage = () => {
                 {selectedBooking.cancellationReason}
               </div>
             )}
+
+            {['confirmed', 'overdue'].includes(selectedBooking.bookingStatus) &&
+              selectedBooking.paymentStatus === 'paid' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = selectedBooking;
+                    setSelectedBooking(null);
+                    setExtendModalBooking(target);
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Clock className="w-4 h-4" />
+                  Extend Parking Duration
+                </button>
+              )}
           </div>
         )}
       </Modal>
@@ -487,6 +549,26 @@ const MyBookingsPage = () => {
           </div>
         )}
       </Modal>
+
+      {/* Extend Booking Modal */}
+      <ExtendBookingModal
+        isOpen={!!extendModalBooking}
+        booking={extendModalBooking}
+        onClose={() => {
+          setExtendModalBooking(null);
+          if (searchParams.get('extend')) {
+            searchParams.delete('extend');
+            setSearchParams(searchParams);
+          }
+        }}
+        onSuccess={() => {
+          fetchBookings(pagination.page);
+          if (searchParams.get('extend')) {
+            searchParams.delete('extend');
+            setSearchParams(searchParams);
+          }
+        }}
+      />
     </div>
   );
 };

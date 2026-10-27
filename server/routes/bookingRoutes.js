@@ -6,11 +6,15 @@ import {
   cancelBooking,
   demoPayment,
   verifyBookingReference,
+  getExtensionQuote,
+  extendBooking,
 } from '../controllers/bookingController.js';
 import {
   validateBookingCreate,
   validateBookingCancel,
   validateDemoPayment,
+  validateExtensionQuote,
+  validateBookingExtend,
 } from '../validators/bookingValidators.js';
 import { authenticate } from '../middleware/auth.js';
 
@@ -23,6 +27,8 @@ router.get('/verify/:reference', verifyBookingReference);
 router.post('/', authenticate, validateBookingCreate, createBooking);
 router.get('/my', authenticate, getMyBookings);
 router.get('/:id', authenticate, getBookingById);
+router.get('/:id/extension-quote', authenticate, validateExtensionQuote, getExtensionQuote);
+router.post('/:id/extend', authenticate, validateBookingExtend, extendBooking);
 router.patch('/:id/cancel', authenticate, validateBookingCancel, cancelBooking);
 router.post('/:id/demo-payment', authenticate, validateDemoPayment, demoPayment);
 
