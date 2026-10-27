@@ -47,6 +47,14 @@ const userSchema = new mongoose.Schema(
       default: 'active',
       index: true,
     },
+    resetPasswordCode: {
+      type: String,
+      select: false,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      select: false,
+    },
     isOnline: {
       type: Boolean,
       default: false,
@@ -77,6 +85,8 @@ userSchema.statics.hashPassword = async function (plainPassword) {
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.passwordHash;
+  delete obj.resetPasswordCode;
+  delete obj.resetPasswordExpires;
   delete obj.__v;
   return obj;
 };

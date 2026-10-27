@@ -12,6 +12,7 @@ import AppLayout from './layouts/AppLayout';
 import LandingPage from './pages/public/LandingPage';
 import LoginPage from './pages/public/LoginPage';
 import RegisterPage from './pages/public/RegisterPage';
+import ForgotPasswordPage from './pages/public/ForgotPasswordPage';
 import VerifyBookingPage from './pages/public/VerifyBookingPage';
 import NotFoundPage from './pages/public/NotFoundPage';
 
@@ -63,6 +64,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/verify/:reference" element={<VerifyBookingPage />} />
 
           {/* User Protected Routes within AppLayout */}

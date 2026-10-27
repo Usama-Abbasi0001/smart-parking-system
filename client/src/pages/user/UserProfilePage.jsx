@@ -4,60 +4,25 @@ import {
   User,
   Mail,
   Car,
-  Lock,
   Calendar,
   Shield,
   CheckCircle2,
-  AlertCircle,
-  Eye,
-  EyeOff,
 } from 'lucide-react';
 import Badge from '../../components/common/Badge';
-import toast from 'react-hot-toast';
 
 const UserProfilePage = () => {
-  const { user, updateProfile, changePassword } = useAuth();
+  const { user, updateProfile } = useAuth();
 
   // Profile form state
   const [name, setName] = useState(user?.name || '');
   const [vehicleNumber, setVehicleNumber] = useState(user?.vehicleNumber || '');
   const [updatingProfile, setUpdatingProfile] = useState(false);
 
-  // Password form state
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
-  const [updatingPassword, setUpdatingPassword] = useState(false);
-
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setUpdatingProfile(true);
     await updateProfile({ name, vehicleNumber });
     setUpdatingProfile(false);
-  };
-
-  const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    if (newPassword !== confirmNewPassword) {
-      toast.error('New passwords do not match');
-      return;
-    }
-    if (newPassword.length < 6) {
-      toast.error('New password must be at least 6 characters');
-      return;
-    }
-
-    setUpdatingPassword(true);
-    const res = await changePassword(currentPassword, newPassword);
-    setUpdatingPassword(false);
-    if (res.success) {
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmNewPassword('');
-    }
   };
 
   return (
@@ -68,7 +33,7 @@ const UserProfilePage = () => {
           User Profile & Vehicle Settings
         </h1>
         <p className="text-sm text-slate-500 mt-0.5">
-          Manage your personal driver details, default vehicle registration, and credentials
+          Manage your personal driver details and default vehicle registration
         </p>
       </div>
 
@@ -180,109 +145,9 @@ const UserProfilePage = () => {
                 <button
                   type="submit"
                   disabled={updatingProfile}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 disabled:opacity-50 transition-colors"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 disabled:opacity-50 transition-colors cursor-pointer"
                 >
                   {updatingProfile ? 'Saving Changes...' : 'Save Profile Changes'}
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* Change Password Form */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm">
-            <h3 className="text-base font-bold text-slate-900 mb-1">Security Credentials</h3>
-            <p className="text-xs text-slate-500 mb-6">
-              Update your account password using your current password
-            </p>
-
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Current Password
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                  <input
-                    type={showCurrentPassword ? 'text' : 'password'}
-                    required
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Enter current password"
-                    className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
-                    title={showCurrentPassword ? 'Hide password' : 'Show password'}
-                    aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    New Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                    <input
-                      type={showNewPassword ? 'text' : 'password'}
-                      required
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Min. 6 characters"
-                      className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
-                      title={showNewPassword ? 'Hide password' : 'Show password'}
-                      aria-label={showNewPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Confirm New Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                    <input
-                      type={showConfirmNewPassword ? 'text' : 'password'}
-                      required
-                      value={confirmNewPassword}
-                      onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      placeholder="Repeat new password"
-                      className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
-                      title={showConfirmNewPassword ? 'Hide password' : 'Show password'}
-                      aria-label={showConfirmNewPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showConfirmNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={updatingPassword}
-                  className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50 transition-colors"
-                >
-                  {updatingPassword ? 'Updating Password...' : 'Update Password'}
                 </button>
               </div>
             </form>

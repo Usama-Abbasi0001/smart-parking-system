@@ -361,3 +361,108 @@ export const sendBookingConfirmationEmail = async ({ user, booking, slot, paymen
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Send Password Reset Code Email
+ */
+export const sendPasswordResetEmail = async ({ user, resetCode }) => {
+  try {
+    if (!user || !user.email) {
+      console.warn('[EmailService] Cannot send reset email: Missing user email.');
+      return { success: false, reason: 'missing_email' };
+    }
+
+    const transporter = await getTransporter();
+    const cleanEmail = user.email.toLowerCase().trim();
+    const subject = `ParkPulse Password Reset Code: ${resetCode}`;
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Your Password</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #334155;">
+  <div style="max-width: 580px; margin: 30px auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;">
+    
+    <!-- Top Header -->
+    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 32px 28px; text-align: center; color: #ffffff;">
+      <div style="display: inline-block; background: rgba(59, 130, 246, 0.25); border: 1px solid rgba(147, 197, 253, 0.4); padding: 6px 14px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; color: #93c5fd;">
+        🔒 Security Verification
+      </div>
+      <h1 style="margin: 0; font-size: 24px; font-weight: 800;">
+        Reset Your Park<span style="color: #60a5fa;">Pulse</span> Password
+      </h1>
+      <p style="margin: 6px 0 0 0; font-size: 13px; color: #94a3b8;">
+        Smart Parking Reservation & Digital Bay Management System
+      </p>
+    </div>
+
+    <!-- Main Content -->
+    <div style="padding: 32px 28px;">
+      <p style="font-size: 15px; line-height: 1.6; margin: 0 0 20px 0; color: #1e293b;">
+        Hello <strong>${user.name}</strong>,<br>
+        We received a request to reset the password for your ParkPulse driver account registered to vehicle <strong>${user.vehicleNumber || 'driver'}</strong>.
+      </p>
+
+      <p style="font-size: 14px; color: #475569; margin: 0 0 16px 0;">
+        Use the 6-digit verification code below to complete your password reset. This code will expire in <strong>15 minutes</strong>:
+      </p>
+
+      <!-- Code Box -->
+      <div style="background: #eff6ff; border: 2px dashed #3b82f6; border-radius: 16px; padding: 24px; text-align: center; margin: 24px 0;">
+        <span style="font-size: 12px; font-weight: 700; color: #1d4ed8; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 8px;">
+          One-Time Verification Code
+        </span>
+        <div style="font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #1e40af; font-family: monospace;">
+          ${resetCode}
+        </div>
+      </div>
+
+      <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 14px 16px; border-radius: 8px; margin-bottom: 24px;">
+        <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #991b1b;">
+          <strong>Security Notice:</strong> If you did not request this password reset, please ignore this email or contact support immediately. Your password remains unchanged until verified.
+        </p>
+      </div>
+
+      <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin: 0; text-align: center;">
+        Need assistance? Contact system administration:<br>
+        <strong>Email:</strong> ${process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com'}
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px; text-align: center; font-size: 11px; color: #94a3b8;">
+      © ${new Date().getFullYear()} ParkPulse Smart Parking System. Automated Security Notification.
+    </div>
+  </div>
+</body>
+</html>
+    `;
+
+    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com').trim();
+    const fromAddress = `"ParkPulse Security" <${userEmail}>`;
+
+    const mailOptions = {
+      from: fromAddress,
+      to: cleanEmail,
+      replyTo: userEmail,
+      subject,
+      html: htmlContent,
+      text: `Your ParkPulse password reset code is: ${resetCode}\nThis code will expire in 15 minutes.\nIf you did not request this, please ignore this email.`,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[EmailService] Password reset email sent to ${cleanEmail} (MessageId: ${info.messageId || 'simulated'})`);
+    return {
+      success: true,
+      messageId: info.messageId,
+    };
+  } catch (error) {
+    console.error('[EmailService] Failed to send password reset email (non-fatal):', error.message);
+    return { success: false, error: error.message };
+  }
+};
+

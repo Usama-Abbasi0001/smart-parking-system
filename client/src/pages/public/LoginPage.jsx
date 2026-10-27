@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Car, Lock, Eye, EyeOff } from 'lucide-react';
+import { Car, Lock, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import ForgotPasswordModal from '../../components/common/ForgotPasswordModal';
 
 const LoginPage = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -69,9 +71,18 @@ const LoginPage = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(true)}
+                  className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer transition-colors"
+                >
+                  Forgot Password?
+                </button>
+              </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <Lock className="w-4 h-4" />
@@ -105,14 +116,36 @@ const LoginPage = () => {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-xs text-slate-500">
-            Don't have an account?{' '}
-            <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-700">
-              Create an account
-            </Link>
+          <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col items-center gap-2.5 text-xs text-slate-500">
+            <div className="flex items-center gap-1.5">
+              <span>Forgot credentials?</span>
+              <button
+                type="button"
+                onClick={() => setShowForgotModal(true)}
+                className="font-bold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer transition-colors"
+              >
+                Reset Password
+              </button>
+            </div>
+            <div>
+              Don't have an account?{' '}
+              <Link to="/register" className="font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                Create an account
+              </Link>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotModal}
+        onClose={() => setShowForgotModal(false)}
+        initialIdentifier={identifier}
+        onSuccess={(id) => {
+          if (id) setIdentifier(id);
+        }}
+      />
     </div>
   );
 };

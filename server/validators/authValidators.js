@@ -68,3 +68,35 @@ export const validateChangePassword = [
     .withMessage('New password must be at least 6 characters long'),
   validateRequest,
 ];
+
+export const validateForgotPassword = [
+  body().custom((value, { req }) => {
+    const ident = req.body.identifier || req.body.email || req.body.vehicleNumber;
+    if (!ident || typeof ident !== 'string' || !ident.trim()) {
+      throw new Error('Vehicle plate number or email address is required');
+    }
+    return true;
+  }),
+  validateRequest,
+];
+
+export const validateResetPassword = [
+  body().custom((value, { req }) => {
+    const ident = req.body.identifier || req.body.email || req.body.vehicleNumber;
+    if (!ident || typeof ident !== 'string' || !ident.trim()) {
+      throw new Error('Vehicle plate number or email address is required');
+    }
+    return true;
+  }),
+  body('code')
+    .trim()
+    .notEmpty()
+    .withMessage('Verification code is required'),
+  body('newPassword')
+    .notEmpty()
+    .withMessage('New password is required')
+    .isLength({ min: 6 })
+    .withMessage('New password must be at least 6 characters long'),
+  validateRequest,
+];
+

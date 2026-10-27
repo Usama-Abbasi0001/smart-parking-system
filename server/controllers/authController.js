@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { sendWelcomeEmail } from '../services/emailService.js';
+import { sendWelcomeEmail, sendPasswordResetEmail } from '../services/emailService.js';
 
 const generateToken = (userId, role) => {
   const secret = process.env.JWT_SECRET || 'dev_jwt_secret_smart_parking_fyp_key_2026_secure';
@@ -234,6 +234,146 @@ export const changePassword = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Password changed successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const rawIdentifier = (req.body.identifier || req.body.email || req.body.vehicleNumber || '').trim();
+
+    if (!rawIdentifier) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide your registered email address or vehicle plate number.',
+      });
+    }
+
+    const escapedIdentifier = rawIdentifier.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+
+    const user = await User.findOne({
+      $or: [
+        { email: rawIdentifier.toLowerCase() },
+        { vehicleNumber: { $regex: new RegExp(`^${escapedIdentifier}$`, 'i') } },
+      ],
+    }).select('+resetPasswordCode +resetPasswordExpires');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account was found with that email or vehicle plate number.',
+      });
+    }
+
+    if (user.accountStatus === 'deactivated') {
+      return res.status(403).json({
+        success: false,
+        message: 'This account has been deactivated. Please contact administrator.',
+      });
+    }
+
+    // Generate random 6-digit verification code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.resetPasswordCode = resetCode;
+    user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+    await user.save();
+
+    // Send email non-blocking
+    sendPasswordResetEmail({ user, resetCode }).catch((err) => {
+      console.warn('[AuthController] Reset email dispatch warning:', err.message);
+    });
+
+    const maskedEmail = user.email.replace(/(.{2})(.*)(?=@)/, (gp1, gp2, gp3) => gp2 + '*'.repeat(Math.max(3, gp3.length)));
+
+    res.status(200).json({
+      success: true,
+      message: `A 6-digit verification code has been dispatched to ${maskedEmail}.`,
+      data: {
+        maskedEmail,
+        vehicleNumber: user.vehicleNumber,
+        demoCode: resetCode,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  try {
+    const rawIdentifier = (req.body.identifier || req.body.email || req.body.vehicleNumber || '').trim();
+    const { code, newPassword } = req.body;
+
+    if (!rawIdentifier || !code || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Identifier, verification code, and new password are required.',
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters long.',
+      });
+    }
+
+    const escapedIdentifier = rawIdentifier.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+
+    const user = await User.findOne({
+      $or: [
+        { email: rawIdentifier.toLowerCase() },
+        { vehicleNumber: { $regex: new RegExp(`^${escapedIdentifier}$`, 'i') } },
+      ],
+    }).select('+passwordHash +resetPasswordCode +resetPasswordExpires');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Account not found.',
+      });
+    }
+
+    if (!user.resetPasswordCode || !user.resetPasswordExpires) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active password reset request found. Please request a new code.',
+      });
+    }
+
+    if (user.resetPasswordExpires < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired. Please request a new code.',
+      });
+    }
+
+    if (user.resetPasswordCode.trim() !== code.toString().trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid verification code. Please check your email or enter the code again.',
+      });
+    }
+
+    // Code is valid! Hash new password
+    user.passwordHash = await User.hashPassword(newPassword);
+    user.resetPasswordCode = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    await Notification.create({
+      userId: user._id,
+      title: 'Password Reset Successful',
+      message: 'Your account password was successfully reset. You can now use your new password to sign in.',
+      type: 'system',
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset successfully! You can now log in with your new password.',
     });
   } catch (error) {
     next(error);

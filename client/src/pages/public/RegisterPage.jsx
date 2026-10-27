@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Car, Lock, Mail, User, Shield, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import ForgotPasswordModal from '../../components/common/ForgotPasswordModal';
 import toast from 'react-hot-toast';
 
 const RegisterPage = () => {
@@ -15,6 +16,7 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -218,16 +220,45 @@ const RegisterPage = () => {
             >
               {submitting ? 'Creating Account...' : 'Register Driver Account'}
             </button>
+
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => setShowForgotModal(true)}
+                className="text-xs font-semibold text-slate-600 hover:text-blue-600 hover:underline transition-colors cursor-pointer"
+              >
+                Forgot your password?
+              </button>
+            </div>
           </form>
 
-          <div className="mt-6 text-center text-xs text-slate-500">
-            Already have an account?{' '}
-            <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-700">
-              Sign In
-            </Link>
+          <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>
+              Already have an account?{' '}
+              <Link to="/login" className="font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                Sign In
+              </Link>
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowForgotModal(true)}
+              className="font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+            >
+              Forgot Password?
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotModal}
+        onClose={() => setShowForgotModal(false)}
+        initialIdentifier={formData.email || formData.vehicleNumber}
+        onSuccess={() => {
+          navigate('/login');
+        }}
+      />
     </div>
   );
 };

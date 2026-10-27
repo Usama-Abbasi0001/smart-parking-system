@@ -127,3 +127,32 @@ test('QR Code generation produces valid data URL', async () => {
   const qr = await generateBookingQRCode('PRK-VERIFY-999');
   assert.ok(qr.startsWith('data:image/png;base64,'));
 });
+
+test('Password reset code generation and password update', async () => {
+  const user = await User.findOne({ email: 'driver@test.com' });
+  assert.ok(user);
+
+  // Set reset code and expiry
+  user.resetPasswordCode = '987654';
+  user.resetPasswordExpires = new Date(Date.now() + 10 * 60 * 1000);
+  await user.save();
+
+  // Verify code is stored
+  const userWithCode = await User.findById(user._id).select('+resetPasswordCode +resetPasswordExpires');
+  assert.equal(userWithCode.resetPasswordCode, '987654');
+
+  // Update password with new hash
+  userWithCode.passwordHash = await User.hashPassword('NewSecret999!');
+  userWithCode.resetPasswordCode = undefined;
+  userWithCode.resetPasswordExpires = undefined;
+  await userWithCode.save();
+
+  // Verify new password matches and code is cleared
+  const updatedUser = await User.findById(user._id).select('+passwordHash +resetPasswordCode');
+  assert.equal(updatedUser.resetPasswordCode, undefined);
+  const isMatchNew = await updatedUser.comparePassword('NewSecret999!');
+  assert.equal(isMatchNew, true);
+  const isMatchOld = await updatedUser.comparePassword('Secret123!');
+  assert.equal(isMatchOld, false);
+});
+
