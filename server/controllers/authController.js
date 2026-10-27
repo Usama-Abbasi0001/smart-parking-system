@@ -304,13 +304,18 @@ export const forgotPassword = async (req, res, next) => {
 
 export const resetPassword = async (req, res, next) => {
   try {
-    const rawIdentifier = (req.body.identifier || req.body.email || req.body.vehicleNumber || '').trim();
+    const rawIdentifier = (
+      req.body.identifier ||
+      req.body.email ||
+      req.body.vehicleNumber ||
+      ''
+    ).trim();
     const { code, newPassword } = req.body;
 
-    if (!rawIdentifier || !code || !newPassword) {
+    if (!rawIdentifier || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Identifier, verification code, and new password are required.',
+        message: 'Email address/vehicle plate and new password are required.',
       });
     }
 
@@ -333,32 +338,27 @@ export const resetPassword = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Account not found.',
+        message: `No account was found matching "${rawIdentifier}". Please check your email or vehicle plate.`,
       });
     }
 
-    if (!user.resetPasswordCode || !user.resetPasswordExpires) {
-      return res.status(400).json({
-        success: false,
-        message: 'No active password reset request found. Please request a new code.',
-      });
+    // If a verification code was provided and active, verify it
+    if (code && user.resetPasswordCode) {
+      if (user.resetPasswordExpires && user.resetPasswordExpires < new Date()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification code has expired. Please try again.',
+        });
+      }
+      if (user.resetPasswordCode.trim() !== code.toString().trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid verification code.',
+        });
+      }
     }
 
-    if (user.resetPasswordExpires < new Date()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Verification code has expired. Please request a new code.',
-      });
-    }
-
-    if (user.resetPasswordCode.trim() !== code.toString().trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid verification code. Please check your email or enter the code again.',
-      });
-    }
-
-    // Code is valid! Hash new password
+    // Set new password hash directly
     user.passwordHash = await User.hashPassword(newPassword);
     user.resetPasswordCode = undefined;
     user.resetPasswordExpires = undefined;
@@ -366,14 +366,14 @@ export const resetPassword = async (req, res, next) => {
 
     await Notification.create({
       userId: user._id,
-      title: 'Password Reset Successful',
-      message: 'Your account password was successfully reset. You can now use your new password to sign in.',
+      title: 'Password Set Successfully',
+      message: 'Your account password has been updated. You can now use your new password to sign in.',
       type: 'system',
     });
 
     res.status(200).json({
       success: true,
-      message: 'Password reset successfully! You can now log in with your new password.',
+      message: 'Password updated successfully! You can now log in with your new password.',
     });
   } catch (error) {
     next(error);

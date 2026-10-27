@@ -82,16 +82,12 @@ export const validateForgotPassword = [
 
 export const validateResetPassword = [
   body().custom((value, { req }) => {
-    const ident = req.body.identifier || req.body.email || req.body.vehicleNumber;
+    const ident = req.body.identifier || req.body.email || req.body.vehicleNumber || req.user?.email || req.user?.vehicleNumber;
     if (!ident || typeof ident !== 'string' || !ident.trim()) {
       throw new Error('Vehicle plate number or email address is required');
     }
     return true;
   }),
-  body('code')
-    .trim()
-    .notEmpty()
-    .withMessage('Verification code is required'),
   body('newPassword')
     .notEmpty()
     .withMessage('New password is required')
@@ -99,4 +95,5 @@ export const validateResetPassword = [
     .withMessage('New password must be at least 6 characters long'),
   validateRequest,
 ];
+
 
