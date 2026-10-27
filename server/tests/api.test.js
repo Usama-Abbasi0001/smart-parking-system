@@ -11,6 +11,8 @@ import { generateBookingQRCode } from '../services/qrService.js';
 import { runExpiryAndReminderSweep } from '../services/schedulerService.js';
 
 test.before(async () => {
+  // Isolate tests in in-memory MongoDB so test execution never modifies or wipes the live Atlas database
+  delete process.env.MONGODB_URI;
   await connectDB();
   await Promise.all([
     User.deleteMany({}),
