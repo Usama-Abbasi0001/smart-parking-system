@@ -6,225 +6,115 @@ import ParkingSlot from '../models/ParkingSlot.js';
 import Booking from '../models/Booking.js';
 import Payment from '../models/Payment.js';
 import Notification from '../models/Notification.js';
-import { generateBookingQRCode } from '../services/qrService.js';
 
 dotenv.config();
 
 export const seedDatabase = async (shouldDisconnect = true) => {
   try {
-    console.log('--- Starting Database Seeder for Smart Parking System ---');
+    console.log('--- Starting Database Seeder for Smart Parking System (4 Malls) ---');
 
-    console.log('Clearing existing collections...');
+    // 1. Clear bookings, payments, notifications
     await Promise.all([
-      User.deleteMany({}),
-      ParkingSlot.deleteMany({}),
       Booking.deleteMany({}),
       Payment.deleteMany({}),
       Notification.deleteMany({}),
     ]);
+    console.log('✅ Cleared all bookings, payments, and notifications.');
 
-    // 1. Create First Admin
+    // 2. Ensure Admin and User Accounts
     const adminEmail = process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com';
     const adminPassword = process.env.ADMIN_PASSWORD || '2k22-cs-44';
     const adminName = process.env.ADMIN_NAME || 'Usama Khan';
     const adminVehicle = process.env.ADMIN_VEHICLE || 'ADMIN-001';
 
-    const adminHash = await User.hashPassword(adminPassword);
-    const admin = await User.create({
-      name: adminName,
-      email: adminEmail.toLowerCase(),
-      passwordHash: adminHash,
-      role: 'admin',
-      vehicleNumber: adminVehicle,
-      accountStatus: 'active',
+    let admin = await User.findOne({ email: adminEmail.toLowerCase() });
+    if (!admin) {
+      const adminHash = await User.hashPassword(adminPassword);
+      admin = await User.create({
+        name: adminName,
+        email: adminEmail.toLowerCase(),
+        passwordHash: adminHash,
+        role: 'admin',
+        vehicleNumber: adminVehicle,
+        accountStatus: 'active',
+      });
+      console.log(`✅ Admin Account Created: ${admin.email}`);
+    } else {
+      console.log(`✅ Admin Account Preserved: ${admin.email}`);
+    }
+
+    let user = await User.findOne({ vehicleNumber: 'BMW007' });
+    if (!user) {
+      const userHash = await User.hashPassword('Huzaifa0001');
+      user = await User.create({
+        name: 'Huzaifa',
+        email: 'huzaifa@gmail.com',
+        passwordHash: userHash,
+        role: 'user',
+        vehicleNumber: 'BMW007',
+        accountStatus: 'active',
+      });
+      console.log(`✅ User Account Created: Huzaifa (BMW007)`);
+    } else {
+      console.log(`✅ User Account Preserved: Huzaifa (BMW007)`);
+    }
+
+    // Remove any demo client users
+    await User.deleteMany({
+      email: { $nin: [adminEmail.toLowerCase(), 'huzaifa@gmail.com'] },
+      vehicleNumber: { $nin: ['ADMIN-001', 'BMW007'] },
     });
-    console.log(`✅ Admin Account Created: ${admin.email} (Password: ${adminPassword})`);
 
-    // 2. Create Demo Client (Regular User)
-    const clientPasswordHash = await User.hashPassword('Client1234!');
-    const demoClient = await User.create({
-      name: 'Demo Client',
-      email: 'client@smartpark.com',
-      passwordHash: clientPasswordHash,
-      role: 'user',
-      vehicleNumber: 'KHI-7860',
-      accountStatus: 'active',
-    });
-    console.log(`✅ Demo Client Created: ${demoClient.email} (Password: Client1234!)`);
+    // 3. Insert Exactly 30 Parking Slots across 4 Malls
+    const slotsData = [
+      // 1. Boulevard Mall (10 Slots: 5 Cars, 3 Bikes, 2 Cycles)
+      { slotNumber: 'BLV-C01', area: 'Boulevard Mall', floorOrZone: 'Floor 1', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Spacious car bay with automatic sensor' },
+      { slotNumber: 'BLV-C02', area: 'Boulevard Mall', floorOrZone: 'Floor 1', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Near main entrance pedestrian lift' },
+      { slotNumber: 'BLV-C03', area: 'Boulevard Mall', floorOrZone: 'Floor 1', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Wide executive car bay' },
+      { slotNumber: 'BLV-C04', area: 'Boulevard Mall', floorOrZone: 'Floor 2', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Upper covered deck parking' },
+      { slotNumber: 'BLV-C05', area: 'Boulevard Mall', floorOrZone: 'Floor 2', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Upper covered deck parking' },
+      { slotNumber: 'BLV-B01', area: 'Boulevard Mall', floorOrZone: 'Ground Bay', hourlyRate: 1250, slotType: 'bike', active: true, maintenanceStatus: false, description: 'Motorcycle bay with ground chain lock and CCTV' },
+      { slotNumber: 'BLV-B02', area: 'Boulevard Mall', floorOrZone: 'Ground Bay', hourlyRate: 1250, slotType: 'bike', active: true, maintenanceStatus: false, description: 'Motorcycle bay with ground chain lock and CCTV' },
+      { slotNumber: 'BLV-B03', area: 'Boulevard Mall', floorOrZone: 'Ground Bay', hourlyRate: 1250, slotType: 'bike', active: true, maintenanceStatus: false, description: 'Motorcycle bay with ground chain lock and CCTV' },
+      { slotNumber: 'BLV-CY01', area: 'Boulevard Mall', floorOrZone: 'Eco Stand', hourlyRate: 500, slotType: 'cycle', active: true, maintenanceStatus: false, description: 'Sheltered bicycle stand with frame lock mount' },
+      { slotNumber: 'BLV-CY02', area: 'Boulevard Mall', floorOrZone: 'Eco Stand', hourlyRate: 500, slotType: 'cycle', active: true, maintenanceStatus: false, description: 'Sheltered bicycle stand with frame lock mount' },
 
-    // 3. Create Exactly 30 Parking Slots:
-    // 15 Cars @ 2500 PKR/hr (5,000 PKR for 2 hours)
-    // 10 Bikes @ 1250 PKR/hr (2,500 PKR for 2 hours)
-    // 5 Cycles @ 500 PKR/hr (1,000 PKR for 2 hours)
-    const slotsData = [];
+      // 2. Abdullah Mall (8 Slots: 4 Cars, 3 Bikes, 1 Cycle)
+      { slotNumber: 'ABD-C01', area: 'Abdullah Mall', floorOrZone: 'Level 1', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Prime covered car bay near escalators' },
+      { slotNumber: 'ABD-C02', area: 'Abdullah Mall', floorOrZone: 'Level 1', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Prime covered car bay near escalators' },
+      { slotNumber: 'ABD-C03', area: 'Abdullah Mall', floorOrZone: 'Level 2', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Rooftop shaded car parking' },
+      { slotNumber: 'ABD-C04', area: 'Abdullah Mall', floorOrZone: 'Level 2', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Rooftop shaded car parking' },
+      { slotNumber: 'ABD-B01', area: 'Abdullah Mall', floorOrZone: 'Ground Floor', hourlyRate: 1250, slotType: 'bike', active: true, maintenanceStatus: false, description: 'Covered bike parking bay with security guard' },
+      { slotNumber: 'ABD-B02', area: 'Abdullah Mall', floorOrZone: 'Ground Floor', hourlyRate: 1250, slotType: 'bike', active: true, maintenanceStatus: false, description: 'Covered bike parking bay with security guard' },
+      { slotNumber: 'ABD-B03', area: 'Abdullah Mall', floorOrZone: 'Ground Floor', hourlyRate: 1250, slotType: 'bike', active: true, maintenanceStatus: false, description: 'Covered bike parking bay with security guard' },
+      { slotNumber: 'ABD-CY01', area: 'Abdullah Mall', floorOrZone: 'Gate 1 Stand', hourlyRate: 500, slotType: 'cycle', active: true, maintenanceStatus: false, description: 'Dual-lock cycle stand near Gate 1' },
 
-    // 15 Car Slots (5k for 2 hours)
-    for (let i = 1; i <= 15; i++) {
-      const num = String(i).padStart(2, '0');
-      slotsData.push({
-        slotNumber: `CAR-${num}`,
-        area: 'Central Plaza - Car Deck',
-        floorOrZone: i <= 8 ? 'Floor 1' : 'Floor 2',
-        hourlyRate: 2500,
-        slotType: 'car',
-        active: true,
-        maintenanceStatus: false,
-        description: 'Spacious car bay with automatic sensor (PKR 5,000 for 2 hrs)',
-      });
-    }
+      // 3. Chase Value (6 Slots: 3 Cars, 2 Bikes, 1 Cycle)
+      { slotNumber: 'CHV-C01', area: 'Chase Value', floorOrZone: 'Basement 1', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Basement car bay with quick shopping cart access' },
+      { slotNumber: 'CHV-C02', area: 'Chase Value', floorOrZone: 'Basement 1', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Basement car bay with quick shopping cart access' },
+      { slotNumber: 'CHV-C03', area: 'Chase Value', floorOrZone: 'Basement 1', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Basement car bay with quick shopping cart access' },
+      { slotNumber: 'CHV-B01', area: 'Chase Value', floorOrZone: 'East Bay', hourlyRate: 1250, slotType: 'bike', active: true, maintenanceStatus: false, description: 'East wing motorcycle parking' },
+      { slotNumber: 'CHV-B02', area: 'Chase Value', floorOrZone: 'East Bay', hourlyRate: 1250, slotType: 'bike', active: true, maintenanceStatus: false, description: 'East wing motorcycle parking' },
+      { slotNumber: 'CHV-CY01', area: 'Chase Value', floorOrZone: 'Front Stand', hourlyRate: 500, slotType: 'cycle', active: true, maintenanceStatus: false, description: 'Front sidewalk cycle parking bar' },
 
-    // 10 Bike Slots (2.5k for 2 hours)
-    for (let i = 1; i <= 10; i++) {
-      const num = String(i).padStart(2, '0');
-      slotsData.push({
-        slotNumber: `BIKE-${num}`,
-        area: 'Metro Station - Bike Zone',
-        floorOrZone: 'Ground Bay',
-        hourlyRate: 1250,
-        slotType: 'bike',
-        active: true,
-        maintenanceStatus: false,
-        description: 'Motorcycle bay with ground chain lock and CCTV (PKR 2,500 for 2 hrs)',
-      });
-    }
+      // 4. Mehran Walk (6 Slots: 3 Cars, 2 Bikes, 1 Cycle)
+      { slotNumber: 'MHR-C01', area: 'Mehran Walk', floorOrZone: 'Open Plaza', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Open-air secure car parking' },
+      { slotNumber: 'MHR-C02', area: 'Mehran Walk', floorOrZone: 'Open Plaza', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Open-air secure car parking' },
+      { slotNumber: 'MHR-C03', area: 'Mehran Walk', floorOrZone: 'Open Plaza', hourlyRate: 2500, slotType: 'car', active: true, maintenanceStatus: false, description: 'Open-air secure car parking' },
+      { slotNumber: 'MHR-B01', area: 'Mehran Walk', floorOrZone: 'West Bay', hourlyRate: 1250, slotType: 'bike', active: true, maintenanceStatus: false, description: 'Two-wheeler bay near promenade' },
+      { slotNumber: 'MHR-B02', area: 'Mehran Walk', floorOrZone: 'West Bay', hourlyRate: 1250, slotType: 'bike', active: true, maintenanceStatus: false, description: 'Two-wheeler bay near promenade' },
+      { slotNumber: 'MHR-CY01', area: 'Mehran Walk', floorOrZone: 'Walkway Stand', hourlyRate: 500, slotType: 'cycle', active: true, maintenanceStatus: false, description: 'Pedestrian promenade bicycle mount' },
+    ];
 
-    // 5 Cycle Slots (1k for 2 hours)
-    for (let i = 1; i <= 5; i++) {
-      const num = String(i).padStart(2, '0');
-      slotsData.push({
-        slotNumber: `CYCLE-${num}`,
-        area: 'Eco Hub - Cycle Stands',
-        floorOrZone: 'Sheltered Stand',
-        hourlyRate: 500,
-        slotType: 'cycle',
-        active: true,
-        maintenanceStatus: false,
-        description: 'Sheltered bicycle stand with frame lock mount (PKR 1,000 for 2 hrs)',
-      });
-    }
-
+    await ParkingSlot.deleteMany({});
     const slots = await ParkingSlot.insertMany(slotsData);
-    console.log(`✅ Exactly ${slots.length} Parking Slots Created (15 Cars, 10 Bikes, 5 Cycles)`);
+    console.log(`✅ Exactly ${slots.length} Parking Slots Created across 4 Malls.`);
 
-    // 4. Create realistic demo bookings and payments
-    const now = new Date();
-    const primaryUser = demoClient;
-
-    // A. Active booking occupying CP-101 right now
-    const activeStart = new Date(now.getTime() - 45 * 60 * 1000); // started 45 mins ago
-    const activeEnd = new Date(now.getTime() + 75 * 60 * 1000);   // ends in 1 hour 15 mins
-    const activeRef = 'PRK-DEMO-ACT01';
-    const qrActive = await generateBookingQRCode(activeRef);
-
-    const activeBooking = await Booking.create({
-      bookingReference: activeRef,
-      userId: primaryUser._id,
-      slotId: slots[0]._id, // CP-101
-      startTime: activeStart,
-      endTime: activeEnd,
-      durationMinutes: 120,
-      amount: 300,
-      bookingStatus: 'confirmed',
-      paymentStatus: 'paid',
-      vehicleNumber: primaryUser.vehicleNumber,
-      qrCodeDataUrl: qrActive,
-    });
-
-    await Payment.create({
-      bookingId: activeBooking._id,
-      userId: primaryUser._id,
-      amount: 300,
-      method: 'credit_card',
-      transactionReference: `TXN-SIM-${Date.now()}-A1`,
-      status: 'paid',
-      simulated: true,
-    });
-
-    // B. Upcoming booking tomorrow
-    const tomorrowStart = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const tomorrowEnd = new Date(tomorrowStart.getTime() + 180 * 60 * 1000);
-    const upRef = 'PRK-DEMO-UP02';
-    const qrUp = await generateBookingQRCode(upRef);
-
-    const upcomingBooking = await Booking.create({
-      bookingReference: upRef,
-      userId: primaryUser._id,
-      slotId: slots[3]._id, // CP-104 EV Charging
-      startTime: tomorrowStart,
-      endTime: tomorrowEnd,
-      durationMinutes: 180,
-      amount: 600,
-      bookingStatus: 'confirmed',
-      paymentStatus: 'paid',
-      vehicleNumber: primaryUser.vehicleNumber,
-      qrCodeDataUrl: qrUp,
-    });
-
-    await Payment.create({
-      bookingId: upcomingBooking._id,
-      userId: primaryUser._id,
-      amount: 600,
-      method: 'digital_wallet',
-      transactionReference: `TXN-SIM-${Date.now()}-U2`,
-      status: 'paid',
-      simulated: true,
-    });
-
-    // C. Past completed booking for Demo Client
-    const pastStart = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-    const pastEnd = new Date(pastStart.getTime() + 120 * 60 * 1000);
-    const pastRef = 'PRK-DEMO-CMP03';
-    const qrPast = await generateBookingQRCode(pastRef);
-
-    const pastBooking = await Booking.create({
-      bookingReference: pastRef,
-      userId: primaryUser._id,
-      slotId: slots[9]._id, // T1-A01
-      startTime: pastStart,
-      endTime: pastEnd,
-      durationMinutes: 120,
-      amount: 500,
-      bookingStatus: 'completed',
-      paymentStatus: 'paid',
-      vehicleNumber: primaryUser.vehicleNumber,
-      qrCodeDataUrl: qrPast,
-      completedAt: pastEnd,
-    });
-
-    await Payment.create({
-      bookingId: pastBooking._id,
-      userId: primaryUser._id,
-      amount: 500,
-      method: 'credit_card',
-      transactionReference: `TXN-SIM-${Date.now()}-C3`,
-      status: 'paid',
-      simulated: true,
-    });
-
-    // Notifications for Demo Client
-    await Notification.insertMany([
-      {
-        userId: primaryUser._id,
-        title: 'Active Parking Session',
-        message: 'Your vehicle (KHI-7860) is currently parked at CP-101. Session expires in ~1 hour.',
-        type: 'booking',
-        bookingId: activeBooking._id,
-      },
-      {
-        userId: primaryUser._id,
-        title: 'Payment Confirmation',
-        message: 'Simulated payment of PKR 300 confirmed for CP-101. Digital receipt is ready.',
-        type: 'payment',
-        bookingId: activeBooking._id,
-      },
-    ]);
-
-    console.log('✅ Demo Bookings, Payments, and Notifications Seeded Successfully!');
     console.log('\n======================================================');
-    console.log('🌱 SEEDING COMPLETE! Test Credentials:');
+    console.log('🌱 SEEDING COMPLETE! Preserved Real Accounts:');
     console.log(`   Admin:  ${adminEmail}  | Password: ${adminPassword}`);
-    console.log(`   User:   john.doe@example.com   | Password: User1234!`);
-    console.log(`   User:   sarah.connor@example.com | Password: User1234!`);
+    console.log(`   User:   Huzaifa (BMW007)       | Password: Huzaifa0001`);
+    console.log('   All Demo Bookings Cleared!');
     console.log('======================================================\n');
 
     if (shouldDisconnect) {
@@ -246,4 +136,3 @@ if (process.argv[1]?.endsWith('seed.js')) {
     await seedDatabase(true);
   })();
 }
-
