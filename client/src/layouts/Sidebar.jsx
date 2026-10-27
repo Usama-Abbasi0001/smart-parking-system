@@ -27,12 +27,18 @@ const Sidebar = ({ isOpen, onClose }) => {
     navigate('/login');
   };
 
-  const userLinks = [
-    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/find-parking', label: 'Find Parking', icon: MapPin },
-    { to: '/my-bookings', label: 'My Bookings', icon: CalendarCheck },
-    { to: '/profile', label: 'Profile & Vehicle', icon: User },
-  ];
+  const userLinks = isAdmin
+    ? [
+        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/find-parking', label: 'Find Parking', icon: MapPin },
+        { to: '/profile', label: 'Profile', icon: User },
+      ]
+    : [
+        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/find-parking', label: 'Find Parking', icon: MapPin },
+        { to: '/my-bookings', label: 'My Bookings', icon: CalendarCheck },
+        { to: '/profile', label: 'Profile & Vehicle', icon: User },
+      ];
 
   const adminLinks = [
     { to: '/admin/dashboard', label: 'Admin Overview', icon: ShieldAlert },
@@ -94,7 +100,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           <div>
             <div className="px-3 flex items-center justify-between mb-2">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Driver Navigation
+                {isAdmin ? 'Account Navigation' : 'Driver Navigation'}
               </span>
               <span className="w-2 h-2 rounded-full bg-blue-500" />
             </div>

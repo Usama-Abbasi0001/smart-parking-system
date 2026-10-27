@@ -48,6 +48,12 @@ export const validateUpdateProfile = [
     .trim()
     .isLength({ min: 2, max: 80 })
     .withMessage('Name must be between 2 and 80 characters'),
+  body('email')
+    .optional()
+    .trim()
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
   body('vehicleNumber')
     .optional()
     .trim()
