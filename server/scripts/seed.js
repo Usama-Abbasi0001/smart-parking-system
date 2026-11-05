@@ -22,9 +22,9 @@ export const seedDatabase = async (shouldDisconnect = true) => {
     console.log('✅ Cleared all bookings, payments, and notifications.');
 
     // 2. Ensure Admin and User Accounts
-    const adminEmail = process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com';
+    const adminEmail = process.env.ADMIN_EMAIL || 'bumar6067@gmail.com';
     const adminPassword = process.env.ADMIN_PASSWORD || '2k22-cs-44';
-    const adminName = process.env.ADMIN_NAME || 'Usama Khan';
+    const adminName = process.env.ADMIN_NAME || 'M.Umer';
     const adminVehicle = process.env.ADMIN_VEHICLE || 'ADMIN-001';
 
     let admin = await User.findOne({ email: adminEmail.toLowerCase() });

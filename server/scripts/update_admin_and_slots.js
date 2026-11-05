@@ -10,15 +10,15 @@ const run = async () => {
     const ParkingSlot = (await import('../models/ParkingSlot.js')).default;
     const Booking = (await import('../models/Booking.js')).default;
 
-    // 1. Create/Update new Admin: usamakhan58461@gmail.com / 2k22-cs-44
-    const adminEmail = 'usamakhan58461@gmail.com';
+    // 1. Create/Update new Admin: bumar6067@gmail.com / 2k22-cs-44
+    const adminEmail = 'bumar6067@gmail.com';
     const adminPassword = '2k22-cs-44';
     const adminHash = await User.hashPassword(adminPassword);
 
     let newAdmin = await User.findOne({ email: adminEmail });
     if (!newAdmin) {
       newAdmin = await User.create({
-        name: 'Usama Khan',
+        name: 'M.Umer',
         email: adminEmail,
         passwordHash: adminHash,
         role: 'admin',
@@ -30,7 +30,7 @@ const run = async () => {
       newAdmin.passwordHash = adminHash;
       newAdmin.role = 'admin';
       newAdmin.accountStatus = 'active';
-      newAdmin.name = 'Usama Khan';
+      newAdmin.name = 'M.Umer';
       await newAdmin.save();
       console.log(`✅ Updated Admin Credentials: ${adminEmail}`);
     }

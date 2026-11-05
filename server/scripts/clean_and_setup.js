@@ -19,9 +19,9 @@ const cleanAndSetup = async () => {
     const nRes = await Notification.deleteMany({});
     console.log(`✅ Removed ${bRes.deletedCount} demo bookings, ${pRes.deletedCount} payments, ${nRes.deletedCount} notifications.`);
 
-    // 2. Remove demo users, keeping only Usama Khan and Huzaifa
+    // 2. Remove demo users, keeping only M.Umer and Huzaifa
     const uRes = await User.deleteMany({
-      email: { $nin: ['usamakhan58461@gmail.com', 'huzaifa@gmail.com'] },
+      email: { $nin: ['bumar6067@gmail.com', 'huzaifa@gmail.com'] },
       vehicleNumber: { $nin: ['ADMIN-001', 'BMW007'] },
     });
     console.log(`✅ Removed ${uRes.deletedCount} demo users.`);

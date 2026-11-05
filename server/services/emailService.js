@@ -157,7 +157,7 @@ export const sendWelcomeEmail = async ({ user }) => {
 
       <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0; text-align: center;">
         Kisi bhi madad ya support ke liye hamari team se rabta karein:<br>
-        <strong>Email:</strong> ${process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com'}
+        <strong>Email:</strong> ${process.env.ADMIN_EMAIL || 'bumar6067@gmail.com'}
       </p>
 
     </div>
@@ -173,7 +173,7 @@ export const sendWelcomeEmail = async ({ user }) => {
 </html>
     `;
 
-    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com').trim();
+    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'bumar6067@gmail.com').trim();
     const fromAddress = `"ParkPulse Smart Parking" <${userEmail}>`;
 
     const mailOptions = {
@@ -320,7 +320,7 @@ export const sendBookingConfirmationEmail = async ({ user, booking, slot, paymen
 
       <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0; text-align: center;">
         Agar aapko koi sawal ya madad darkaar ho, to hamare admin se rabta kar sakte hain.<br>
-        <strong>Email:</strong> ${process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com'}
+        <strong>Email:</strong> ${process.env.ADMIN_EMAIL || 'bumar6067@gmail.com'}
       </p>
 
     </div>
@@ -336,7 +336,7 @@ export const sendBookingConfirmationEmail = async ({ user, booking, slot, paymen
 </html>
     `;
 
-    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com').trim();
+    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'bumar6067@gmail.com').trim();
     const fromAddress = `"ParkPulse Smart Parking" <${userEmail}>`;
 
     const mailOptions = {
@@ -429,7 +429,7 @@ export const sendPasswordResetEmail = async ({ user, resetCode }) => {
 
       <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin: 0; text-align: center;">
         Need assistance? Contact system administration:<br>
-        <strong>Email:</strong> ${process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com'}
+        <strong>Email:</strong> ${process.env.ADMIN_EMAIL || 'bumar6067@gmail.com'}
       </p>
     </div>
 
@@ -442,7 +442,7 @@ export const sendPasswordResetEmail = async ({ user, resetCode }) => {
 </html>
     `;
 
-    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com').trim();
+    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'bumar6067@gmail.com').trim();
     const fromAddress = `"ParkPulse Security" <${userEmail}>`;
 
     const mailOptions = {
@@ -552,7 +552,7 @@ export const sendExpiryReminderEmail = async ({ user, booking, slot, minutesRema
 </html>
     `;
 
-    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com').trim();
+    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'bumar6067@gmail.com').trim();
     const fromAddress = `"ParkPulse Alerts" <${userEmail}>`;
 
     const info = await transporter.sendMail({
@@ -639,7 +639,7 @@ export const sendBookingExpiredEmail = async ({ user, booking, slot, extensionUr
 </html>
     `;
 
-    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com').trim();
+    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'bumar6067@gmail.com').trim();
     const fromAddress = `"ParkPulse Alerts" <${userEmail}>`;
 
     const info = await transporter.sendMail({
@@ -742,7 +742,7 @@ export const sendExtensionConfirmationEmail = async ({ user, booking, slot, paym
 </html>
     `;
 
-    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'usamakhan58461@gmail.com').trim();
+    const userEmail = (process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'bumar6067@gmail.com').trim();
     const fromAddress = `"ParkPulse Billing" <${userEmail}>`;
 
     const info = await transporter.sendMail({
