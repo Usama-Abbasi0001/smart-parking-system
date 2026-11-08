@@ -1,10 +1,16 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
-// Load environment variables (ParkPulse v1.0.1)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables reliably from server/.env or root (ParkPulse v1.0.1)
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 dotenv.config();
 import rateLimit from 'express-rate-limit';
 
@@ -177,6 +183,10 @@ const startServer = async () => {
       // Start background expiry and reminder scheduler
       startScheduler(30000);
     });
+
+    // Ensure Keep-Alive timeout exceeds reverse-proxy / Vite proxy timeouts (prevents ECONNRESET)
+    server.keepAliveTimeout = 65000;
+    server.headersTimeout = 66000;
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);

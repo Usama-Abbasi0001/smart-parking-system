@@ -62,7 +62,7 @@ export const getErrorMessage = (error) => {
   if (error.message === 'Network Error') {
     return 'Cannot reach the parking server. Please verify your internet connection.';
   }
-  if (error.response?.status === 500) {
+  if (error.response?.status === 500 || error.response?.status === 502 || error.response?.status === 503) {
     return 'Server or database is reconnecting. Please try again.';
   }
   return error.message || 'An unexpected error occurred. Please try again.';
